@@ -1,0 +1,107 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+:root {
+  --background: #f2f5ef;
+  --foreground: #183127;
+  --card: rgba(247, 251, 246, 0.88);
+  --card-strong: rgba(255, 255, 255, 0.96);
+  --muted: #67806f;
+  --line: rgba(24, 49, 39, 0.1);
+  --shadow: 0 18px 45px rgba(27, 56, 44, 0.12);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-space-grotesk);
+  --font-display: var(--font-sora);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background:
+    radial-gradient(circle at top left, rgba(78, 147, 111, 0.2), transparent 32%),
+    linear-gradient(145deg, #eef4ea 0%, #f8f6ef 48%, #eef3f0 100%);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  background:
+    radial-gradient(circle at top left, rgba(255, 210, 113, 0.28), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(41, 121, 91, 0.18), transparent 30%),
+    linear-gradient(160deg, #edf3ed 0%, #f9f6ee 52%, #eef5f2 100%);
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(16, 185, 129, 0.24);
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #dfe7dc;
+  font-family: inherit;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: contain;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.leaflet-control-zoom a {
+  color: #183127 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.leaflet-popup-content {
+  margin: 14px 16px;
+}
+
+.leaflet-tooltip {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(24, 49, 39, 0.9);
+  color: #f5f8f4;
+  box-shadow: var(--shadow);
+}
+
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-control {
+  touch-action: none;
+}
+
+.glass-panel {
+  background: var(--card);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.card-strong {
+  background: var(--card-strong);
+  border: 1px solid rgba(24, 49, 39, 0.08);
+  box-shadow: var(--shadow);
+}

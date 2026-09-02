@@ -1,0 +1,110 @@
+[
+  {
+    "id": "ssa-1",
+    "city": "Salvador",
+    "neighborhood": "Brotas",
+    "lat": -12.9833,
+    "lng": -38.4782,
+    "heatLevel": "high",
+    "shadeLevel": "low",
+    "issueType": "low_tree_cover",
+    "description": "Trecho com alta impermeabilização do solo e poucas árvores no entorno da via principal.",
+    "priority": "high"
+  },
+  {
+    "id": "ssa-2",
+    "city": "Salvador",
+    "neighborhood": "Itapuã",
+    "lat": -12.9444,
+    "lng": -38.3627,
+    "heatLevel": "extreme",
+    "shadeLevel": "none",
+    "issueType": "exposed_transit_stop",
+    "description": "Parada de ônibus com intensa incidência solar durante a tarde e sem cobertura vegetal próxima.",
+    "priority": "critical"
+  },
+  {
+    "id": "ssa-3",
+    "city": "Salvador",
+    "neighborhood": "Cajazeiras",
+    "lat": -12.8992,
+    "lng": -38.4119,
+    "heatLevel": "high",
+    "shadeLevel": "none",
+    "issueType": "school_route",
+    "description": "Rota de estudantes com longos percursos em calçadas pouco arborizadas e superfícies muito quentes.",
+    "priority": "critical"
+  },
+  {
+    "id": "cam-1",
+    "city": "Camaçari",
+    "neighborhood": "Centro",
+    "lat": -12.6999,
+    "lng": -38.3263,
+    "heatLevel": "high",
+    "shadeLevel": "low",
+    "issueType": "heat_island",
+    "description": "Concentração de edificações e piso rígido elevando a temperatura superficial em horário comercial.",
+    "priority": "high"
+  },
+  {
+    "id": "cam-2",
+    "city": "Camaçari",
+    "neighborhood": "Abrantes",
+    "lat": -12.7951,
+    "lng": -38.3156,
+    "heatLevel": "medium",
+    "shadeLevel": "low",
+    "issueType": "paved_open_area",
+    "description": "Área de expansão urbana com largos trechos pavimentados, pouca sombra e baixa permeabilidade.",
+    "priority": "medium"
+  },
+  {
+    "id": "lau-1",
+    "city": "Lauro de Freitas",
+    "neighborhood": "Itinga",
+    "lat": -12.8876,
+    "lng": -38.3562,
+    "heatLevel": "high",
+    "shadeLevel": "none",
+    "issueType": "low_tree_cover",
+    "description": "Corredor viário com arborização esparsa e alta sensação térmica em horário de pico.",
+    "priority": "high"
+  },
+  {
+    "id": "lau-2",
+    "city": "Lauro de Freitas",
+    "neighborhood": "Centro",
+    "lat": -12.8948,
+    "lng": -38.3227,
+    "heatLevel": "medium",
+    "shadeLevel": "moderate",
+    "issueType": "exposed_transit_stop",
+    "description": "Ponto de espera com abrigo parcial, mas pouca cobertura vegetal no raio imediato.",
+    "priority": "medium"
+  },
+  {
+    "id": "sim-1",
+    "city": "Simões Filho",
+    "neighborhood": "CIA I",
+    "lat": -12.7852,
+    "lng": -38.4098,
+    "heatLevel": "extreme",
+    "shadeLevel": "none",
+    "issueType": "paved_open_area",
+    "description": "Área industrial com extensas superfícies asfaltadas e ausência quase total de sombra.",
+    "priority": "critical"
+  },
+  {
+    "id": "sim-2",
+    "city": "Simões Filho",
+    "neighborhood": "Centro",
+    "lat": -12.7839,
+    "lng": -38.4025,
+    "heatLevel": "medium",
+    "shadeLevel": "low",
+    "issueType": "school_route",
+    "description": "Eixo de deslocamento escolar com poucas árvores e desconforto térmico recorrente.",
+    "priority": "high"
+  }
+]

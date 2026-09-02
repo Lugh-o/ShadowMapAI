@@ -1,0 +1,94 @@
+export type City =
+  | "Salvador"
+  | "Camaçari"
+  | "Lauro de Freitas"
+  | "Simões Filho";
+
+export type HeatLevel = "low" | "medium" | "high" | "extreme";
+export type ShadeLevel = "good" | "moderate" | "low" | "none";
+export type IssueType =
+  | "heat_island"
+  | "low_tree_cover"
+  | "exposed_transit_stop"
+  | "paved_open_area"
+  | "school_route";
+export type Priority = "low" | "medium" | "high" | "critical";
+export type ModerationStatus = "pending" | "approved" | "rejected";
+
+export interface PointFeature {
+  id: string;
+  city: City;
+  neighborhood: string;
+  lat: number;
+  lng: number;
+  heatLevel: HeatLevel;
+  shadeLevel: ShadeLevel;
+  issueType: IssueType;
+  description: string;
+  priority: Priority;
+  moderationStatus?: ModerationStatus;
+  submittedBy?: string;
+  submittedAt?: string;
+}
+
+export interface HeatZone {
+  id: string;
+  city: City;
+  name: string;
+  coordinates: [number, number][];
+  intensity: HeatLevel;
+}
+
+export interface FiltersState {
+  city: City | "all";
+  issueType: IssueType | "all";
+  priority: Priority | "all";
+}
+
+export type PointFormValues = Omit<PointFeature, "id" | "moderationStatus" | "submittedBy" | "submittedAt">;
+
+export interface NativeSpecies {
+  id: string;
+  commonName: string;
+  scientificName: string;
+  family: string;
+  climate: City[];
+  soilType: string[];
+  treeSize: "small" | "medium" | "large";
+  shadeProduction: "low" | "moderate" | "high";
+  droughtTolerance: "low" | "moderate" | "high";
+  description: string;
+}
+
+export interface SpeciesMatch {
+  species: NativeSpecies;
+  score: number;
+  reasons: string[];
+}
+
+export interface PriorityScore {
+  regionId: string;
+  regionName: string;
+  city: City;
+  score: number;
+  vegetationCoverage: number;
+  heatIntensity: number;
+  populationDensity: number;
+  citizenReports: number;
+  factors: {
+    vegetation: number;
+    heat: number;
+    density: number;
+    reports: number;
+  };
+}
+
+export interface AssistantMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface RateLimitEntry {
+  count: number;
+  resetAt: number;
+}

@@ -1,0 +1,107 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+model PointFeature {
+  id               String           @id @default(cuid())
+  city             String
+  neighborhood     String
+  lat              Float
+  lng              Float
+  location         Unsupported("geometry(Point, 4326)")?
+  heatLevel        String
+  shadeLevel       String
+  issueType        String
+  description      String
+  priority         String
+  moderationStatus String           @default("pending")
+  submittedBy      String?
+  submittedAt      DateTime         @default(now())
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([city])
+  @@index([moderationStatus])
+  @@index([priority])
+}
+
+model HeatZone {
+  id          String   @id @default(cuid())
+  city        String
+  name        String
+  coordinates Json
+  intensity   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([city])
+}
+
+model VegetationEstimate {
+  id                  String   @id @default(cuid())
+  regionId            String
+  regionName          String
+  city                String
+  vegetationCoverage  Float
+  ndviMean            Float?
+  ndviMax             Float?
+  treeCountEstimate   Int?
+  cellSize            Float?
+  satelliteDate       DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([city])
+  @@index([regionId])
+}
+
+model PriorityScore {
+  id                  String   @id @default(cuid())
+  regionId            String
+  regionName          String
+  city                String
+  score               Float
+  vegetationCoverage  Float
+  heatIntensity       Float
+  populationDensity   Float
+  citizenReports      Int
+  calculatedAt        DateTime @default(now())
+
+  @@index([city])
+  @@index([regionId])
+  @@unique([regionId, calculatedAt])
+}
+
+model NativeSpecies {
+  id                String   @id @default(cuid())
+  commonName        String
+  scientificName    String
+  family            String
+  climate           Json
+  soilType          Json
+  treeSize          String
+  shadeProduction   String
+  droughtTolerance  String
+  description       String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([family])
+}
+
+model AssistantConversation {
+  id        String   @id @default(cuid())
+  sessionId String
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+}

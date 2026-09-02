@@ -1,0 +1,98 @@
+[
+  {
+    "id": "hz-ssa-1",
+    "city": "Salvador",
+    "name": "Miolo de Brotas",
+    "coordinates": [
+      [-12.9915, -38.491],
+      [-12.9892, -38.4664],
+      [-12.9724, -38.4702],
+      [-12.9738, -38.4946]
+    ],
+    "intensity": "high"
+  },
+  {
+    "id": "hz-ssa-2",
+    "city": "Salvador",
+    "name": "Corredor Cajazeiras",
+    "coordinates": [
+      [-12.9098, -38.4315],
+      [-12.9075, -38.3974],
+      [-12.8902, -38.4018],
+      [-12.8924, -38.4343]
+    ],
+    "intensity": "extreme"
+  },
+  {
+    "id": "hz-cam-1",
+    "city": "Camaçari",
+    "name": "Eixo Central de Camaçari",
+    "coordinates": [
+      [-12.7107, -38.3435],
+      [-12.7096, -38.3118],
+      [-12.6922, -38.3133],
+      [-12.6931, -38.3467]
+    ],
+    "intensity": "high"
+  },
+  {
+    "id": "hz-cam-2",
+    "city": "Camaçari",
+    "name": "Abrantes Expandido",
+    "coordinates": [
+      [-12.8069, -38.3345],
+      [-12.8048, -38.2987],
+      [-12.7827, -38.3024],
+      [-12.7856, -38.3378]
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "hz-lau-1",
+    "city": "Lauro de Freitas",
+    "name": "Anel de Itinga",
+    "coordinates": [
+      [-12.9017, -38.3722],
+      [-12.9004, -38.3402],
+      [-12.8778, -38.3435],
+      [-12.8789, -38.375]
+    ],
+    "intensity": "high"
+  },
+  {
+    "id": "hz-lau-2",
+    "city": "Lauro de Freitas",
+    "name": "Centro e Terminal",
+    "coordinates": [
+      [-12.9021, -38.3341],
+      [-12.901, -38.3112],
+      [-12.8876, -38.3124],
+      [-12.8888, -38.3361]
+    ],
+    "intensity": "medium"
+  },
+  {
+    "id": "hz-sim-1",
+    "city": "Simões Filho",
+    "name": "CIA Industrial",
+    "coordinates": [
+      [-12.7949, -38.4277],
+      [-12.794, -38.393],
+      [-12.775, -38.3946],
+      [-12.7758, -38.4294]
+    ],
+    "intensity": "extreme"
+  },
+  {
+    "id": "hz-sim-2",
+    "city": "Simões Filho",
+    "name": "Centro Consolidado",
+    "coordinates": [
+      [-12.7906, -38.4122],
+      [-12.7898, -38.3903],
+      [-12.7782, -38.3914],
+      [-12.779, -38.414]
+    ],
+    "intensity": "medium"
+  }
+]
