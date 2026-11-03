@@ -26,14 +26,17 @@ import type {
 
 interface PointFormProps {
   draftLocation: { lat: number; lng: number } | null;
+  initialValues?: Partial<PointFormValues>;
+  aiAssisted?: boolean;
   onCancel: () => void;
-  onSubmit: (values: PointFormValues) => void;
+  onSubmit: (values: PointFormValues, aiAssisted: boolean) => void;
 }
 
 function createInitialValues(
   draftLocation: { lat: number; lng: number } | null,
+  initialValues?: Partial<PointFormValues>,
 ): PointFormValues {
-  return {
+  const values: PointFormValues = {
     city: draftLocation
       ? inferCityFromCoordinates(draftLocation.lat, draftLocation.lng)
       : "Salvador",
@@ -46,6 +49,22 @@ function createInitialValues(
     description: "",
     priority: "high",
   };
+
+  if (initialValues) {
+    for (const [key, value] of Object.entries(initialValues)) {
+      if (value !== undefined) {
+        (values as Record<string, unknown>)[key] = value;
+      }
+    }
+  }
+
+  if (draftLocation) {
+    values.lat = draftLocation.lat;
+    values.lng = draftLocation.lng;
+    values.city = inferCityFromCoordinates(draftLocation.lat, draftLocation.lng);
+  }
+
+  return values;
 }
 
 const fieldClassName =
@@ -56,15 +75,28 @@ const textAreaClassName =
 
 export default function PointForm({
   draftLocation,
+  initialValues,
+  aiAssisted = false,
   onCancel,
   onSubmit,
 }: PointFormProps) {
   const [values, setValues] = useState<PointFormValues>(() =>
-    createInitialValues(draftLocation),
+    createInitialValues(draftLocation, initialValues),
   );
 
   useEffect(() => {
-    setValues(createInitialValues(draftLocation));
+    if (!draftLocation) return;
+
+    const timer = window.setTimeout(() => {
+      setValues((currentValues) => ({
+        ...currentValues,
+        lat: draftLocation.lat,
+        lng: draftLocation.lng,
+        city: inferCityFromCoordinates(draftLocation.lat, draftLocation.lng),
+      }));
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [draftLocation]);
 
   function updateField(field: "city", value: City): void;
@@ -83,11 +115,19 @@ export default function PointForm({
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit(values);
+    onSubmit(values, aiAssisted);
   }
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
+      {aiAssisted ? (
+        <div className="rounded-[22px] border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          Sugestão da IA. Revise os campos antes de salvar. A prioridade é
+          calculada por uma regra fixa, não pela IA.
+          {!draftLocation ? " Clique no mapa para marcar o local." : ""}
+        </div>
+      ) : null}
+
       <div className="rounded-[22px] bg-emerald-50 px-4 py-3 text-sm text-emerald-950/72">
         {draftLocation
           ? "Coordenadas capturadas pelo clique no mapa. Você pode ajustar manualmente, se necessário."

@@ -102,6 +102,19 @@ export interface AssistantMessage {
   content: string;
 }
 
+export interface PointDraft {
+  issueType: IssueType | null;
+  heatLevel: HeatLevel | null;
+  shadeLevel: ShadeLevel | null;
+  description: string;
+  missing: string[];
+}
+
+export interface PointDraftResult {
+  draft: PointDraft;
+  suggestedPriority: Priority | null;
+}
+
 export interface RateLimitEntry {
   count: number;
   resetAt: number;

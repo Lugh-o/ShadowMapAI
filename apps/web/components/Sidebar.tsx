@@ -14,18 +14,24 @@ interface SidebarProps {
   selectedPoint: PointFeature | null;
   criticalPoints: PointFeature[];
   draftLocation: { lat: number; lng: number } | null;
+  draftValues?: Partial<PointFormValues> | null;
+  aiAssisted?: boolean;
+  formKey?: string | number;
   totalPoints: number;
   isFormOpen: boolean;
   onOpenForm: () => void;
   onCloseForm: () => void;
   onSelectPoint: (pointId: string) => void;
-  onSubmitPoint: (values: PointFormValues) => void;
+  onSubmitPoint: (values: PointFormValues, aiAssisted: boolean) => void;
 }
 
 export default function Sidebar({
   selectedPoint,
   criticalPoints,
   draftLocation,
+  draftValues,
+  aiAssisted = false,
+  formKey,
   totalPoints,
   isFormOpen,
   onOpenForm,
@@ -148,7 +154,10 @@ export default function Sidebar({
         <div className="mt-4">
           {isFormOpen ? (
             <PointForm
+              key={formKey ?? "form"}
               draftLocation={draftLocation}
+              initialValues={draftValues ?? undefined}
+              aiAssisted={aiAssisted}
               onCancel={onCloseForm}
               onSubmit={onSubmitPoint}
             />

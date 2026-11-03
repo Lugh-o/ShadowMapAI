@@ -21,6 +21,7 @@ import { cn, sortPointsByCriticality } from "@/lib/utils";
 import type {
   FiltersState,
   HeatZone,
+  PointDraftResult,
   PointFeature,
   PointFormValues,
 } from "@shadowmap/types";
@@ -125,6 +126,11 @@ export default function ShadowMapDashboard({
     lng: number;
   } | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [draftValues, setDraftValues] = useState<Partial<PointFormValues> | null>(
+    null,
+  );
+  const [aiAssisted, setAiAssisted] = useState(false);
+  const [formKey, setFormKey] = useState(0);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [showSimulated, setShowSimulated] = useState(
@@ -191,7 +197,10 @@ export default function ShadowMapDashboard({
     ? "coletados + simulados"
     : "somente coletados";
 
-  async function handlePointSubmit(values: PointFormValues) {
+  async function handlePointSubmit(
+    values: PointFormValues,
+    submittedWithAi: boolean,
+  ) {
     setSubmitMessage(null);
 
     try {
@@ -204,6 +213,7 @@ export default function ShadowMapDashboard({
           ...values,
           neighborhood: values.neighborhood.trim(),
           description: values.description.trim(),
+          aiAssisted: submittedWithAi,
         }),
       });
 
@@ -245,6 +255,8 @@ export default function ShadowMapDashboard({
 
       // O ponto enviado fica pendente de moderação: não entra no mapa ainda.
       setDraftLocation(null);
+      setDraftValues(null);
+      setAiAssisted(false);
       setIsFormOpen(false);
       setSubmitMessage({
         tone: "success",
@@ -260,6 +272,37 @@ export default function ShadowMapDashboard({
 
   function handleMapPick(location: { lat: number; lng: number }) {
     setDraftLocation(location);
+    setIsFormOpen(true);
+  }
+
+  function openManualForm() {
+    setDraftValues(null);
+    setAiAssisted(false);
+    setFormKey((value) => value + 1);
+    setIsFormOpen(true);
+  }
+
+  function closeForm() {
+    setDraftLocation(null);
+    setDraftValues(null);
+    setAiAssisted(false);
+    setIsFormOpen(false);
+  }
+
+  function handleUseDraft(result: PointDraftResult) {
+    const values: Partial<PointFormValues> = {
+      description: result.draft.description,
+    };
+
+    if (result.draft.issueType) values.issueType = result.draft.issueType;
+    if (result.draft.heatLevel) values.heatLevel = result.draft.heatLevel;
+    if (result.draft.shadeLevel) values.shadeLevel = result.draft.shadeLevel;
+    if (result.suggestedPriority) values.priority = result.suggestedPriority;
+
+    setDraftValues(values);
+    setAiAssisted(true);
+    setFormKey((value) => value + 1);
+    setSubmitMessage(null);
     setIsFormOpen(true);
   }
 
@@ -360,7 +403,7 @@ export default function ShadowMapDashboard({
             </p>
             <button
               type="button"
-              onClick={() => setIsFormOpen(true)}
+              onClick={openManualForm}
               className="mt-4 inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-900 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800"
             >
               Registrar um ponto
@@ -377,7 +420,7 @@ export default function ShadowMapDashboard({
           showSimulated={showSimulated}
           onShowSimulatedChange={setShowSimulated}
           onFiltersChange={setFilters}
-          onOpenForm={() => setIsFormOpen(true)}
+          onOpenForm={openManualForm}
         />
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_420px]">
@@ -406,11 +449,14 @@ export default function ShadowMapDashboard({
           <Sidebar
             criticalPoints={criticalPoints}
             draftLocation={draftLocation}
+            draftValues={draftValues}
+            aiAssisted={aiAssisted}
+            formKey={formKey}
             isFormOpen={isFormOpen}
             selectedPoint={selectedPoint}
             totalPoints={originPoints.length}
-            onCloseForm={() => setIsFormOpen(false)}
-            onOpenForm={() => setIsFormOpen(true)}
+            onCloseForm={closeForm}
+            onOpenForm={openManualForm}
             onSelectPoint={setSelectedPointId}
             onSubmitPoint={handlePointSubmit}
           />
@@ -425,7 +471,7 @@ export default function ShadowMapDashboard({
 
       <TourModal isOpen={isTourOpen} onClose={closeTour} />
 
-      <AssistantChat />
+      <AssistantChat onUseDraft={handleUseDraft} />
     </main>
   );
 }

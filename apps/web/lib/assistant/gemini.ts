@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, type ResponseSchema } from "@google/generative-ai";
 
 const TIMEOUT_MS = 20_000;
 const FALLBACK_REPLY = "Não consegui responder a isso. Tente reformular.";
@@ -112,6 +112,72 @@ export async function generateAssistantReply(
     return await sendOnce(model, params);
   } catch (error) {
     console.error("Assistente falhou após retry:", describeError(error));
+    throw new AssistantUnavailableError();
+  }
+}
+
+interface GenerateJsonParams {
+  systemPrompt: string;
+  message: string;
+  responseSchema: ResponseSchema;
+}
+
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+async function sendJsonOnce(
+  model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>,
+  message: string,
+): Promise<unknown> {
+  const result = await withTimeout(model.generateContent(message), TIMEOUT_MS);
+  return parseJson(result.response.text());
+}
+
+export async function generateStructuredJson(
+  params: GenerateJsonParams,
+): Promise<unknown> {
+  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  const modelName = process.env.GEMINI_MODEL;
+
+  if (!apiKey || !modelName) {
+    console.error(
+      "Assistente indisponível: GOOGLE_AI_API_KEY ou GEMINI_MODEL não configurado.",
+    );
+    throw new AssistantUnavailableError();
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    systemInstruction: params.systemPrompt,
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: params.responseSchema,
+      temperature: 0.2,
+    },
+  });
+
+  try {
+    return await sendJsonOnce(model, params.message);
+  } catch (error) {
+    if (!isRetryable(error)) {
+      console.error("Rascunho assistido falhou:", describeError(error));
+      throw new AssistantUnavailableError();
+    }
+  }
+
+  try {
+    return await sendJsonOnce(model, params.message);
+  } catch (error) {
+    console.error(
+      "Rascunho assistido falhou após retry:",
+      describeError(error),
+    );
     throw new AssistantUnavailableError();
   }
 }
