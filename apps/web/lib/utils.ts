@@ -125,6 +125,29 @@ export function getShadeLevelLabel(shadeLevel: ShadeLevel) {
   return SHADE_LEVEL_LABELS[shadeLevel];
 }
 
+// Regra determinística única para prioridade. A IA nunca decide prioridade.
+export function derivePriority(
+  heatLevel: HeatLevel,
+  shadeLevel: ShadeLevel,
+): Priority {
+  if (
+    heatLevel === "extreme" ||
+    (heatLevel === "high" && shadeLevel === "none")
+  ) {
+    return "critical";
+  }
+
+  if (heatLevel === "high") {
+    return "high";
+  }
+
+  if (heatLevel === "medium") {
+    return "medium";
+  }
+
+  return "low";
+}
+
 export function getHeatZoneColor(intensity: HeatLevel) {
   return {
     low: "#F6C453",

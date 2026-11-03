@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db";
 
 const rateLimitMap = new Map<string, RateLimitEntry>();
 
+// Melhor esforço: o Map vive na memória de cada instância. Em serverless
+// (Vercel) não há garantia de contagem compartilhada entre instâncias.
+
 const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "30", 10);
 const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || "60000", 10);
 

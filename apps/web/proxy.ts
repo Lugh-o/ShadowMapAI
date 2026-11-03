@@ -1,19 +1,27 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/dashboard",
+  "/privacidade",
+  "/login",
+  "/register",
+]);
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
-  
-  // Allow public routes
-  if (pathname.startsWith("/login") || pathname.startsWith("/register") || pathname.startsWith("/api/auth")) {
+
+  // Leitura pública do mapa, dashboard e privacidade; autenticação em si.
+  if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
-  
-  // Protect all other routes - redirect to login if not authenticated
+
+  // Qualquer outra rota exige sessão (inclusive /admin).
   if (!req.auth) {
     return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
   }
-  
+
   return NextResponse.next();
 });
 
