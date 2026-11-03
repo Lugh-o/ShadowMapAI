@@ -65,6 +65,11 @@ export default function Sidebar({
             <h3 className="mt-1 font-display text-xl font-semibold text-emerald-950">
               {selectedPoint ? selectedPoint.neighborhood : "Nenhum ponto ativo"}
             </h3>
+            {selectedPoint?.dataOrigin === "simulated" ? (
+              <span className="mt-2 inline-flex rounded-full bg-slate-200 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700">
+                Simulado
+              </span>
+            ) : null}
           </div>
 
           <div className="rounded-2xl bg-emerald-50 p-2 text-emerald-900">
@@ -188,9 +193,16 @@ export default function Sidebar({
                     </p>
                     <p className="text-xs text-emerald-950/55">{point.city}</p>
                   </div>
-                  <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
-                    {getPriorityLabel(point.priority)}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+                      {getPriorityLabel(point.priority)}
+                    </span>
+                    {point.dataOrigin === "simulated" ? (
+                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700">
+                        Simulado
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
                 <p className="mt-3 text-sm text-emerald-950/75">
                   {getIssueTypeLabel(point.issueType)}

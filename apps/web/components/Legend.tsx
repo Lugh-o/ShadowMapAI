@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 
 interface LegendProps {
   className?: string;
+  showSimulated?: boolean;
 }
 
 const heatLegend = [
@@ -18,7 +19,10 @@ const pointLegend = [
   { label: "Crítica", color: "#E63946" },
 ];
 
-export default function Legend({ className }: LegendProps) {
+export default function Legend({
+  className,
+  showSimulated = false,
+}: LegendProps) {
   return (
     <aside
       className={cn(
@@ -35,22 +39,29 @@ export default function Legend({ className }: LegendProps) {
         </h2>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-950/55">
-          Intensidade térmica
-        </p>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {heatLegend.map((item) => (
-            <div key={item.label} className="flex items-center gap-2">
-              <span
-                className="h-3 w-8 rounded-full"
-                style={{ backgroundColor: item.color }}
-              />
-              <span>{item.label}</span>
-            </div>
-          ))}
+      {showSimulated ? (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-950/55">
+            Zonas ilustrativas (não medidas)
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {heatLegend.map((item) => (
+              <div key={item.label} className="flex items-center gap-2">
+                <span
+                  className="h-3 w-8 rounded-full"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <p className="rounded-[18px] bg-white/70 px-3 py-2 text-xs leading-5 text-emerald-950/65">
+          Zonas ilustrativas aparecem apenas quando os dados de demonstração
+          estão ligados.
+        </p>
+      )}
 
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-950/55">
@@ -67,6 +78,10 @@ export default function Legend({ className }: LegendProps) {
             </div>
           ))}
         </div>
+        <p className="flex items-center gap-2 text-xs text-emerald-950/65">
+          <span className="h-3 w-3 rounded-full border-2 border-dashed border-emerald-950/45 bg-slate-300" />
+          Simulado (dados de demonstração)
+        </p>
       </div>
     </aside>
   );

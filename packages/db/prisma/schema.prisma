@@ -22,7 +22,10 @@ model PointFeature {
   description      String
   priority         String
   moderationStatus String           @default("pending")
-  submittedBy      String?
+  dataOrigin       String           @default("simulated") // "collected" | "simulated"
+  ref              String?          // slug do aplicador do piloto (T8)
+  aiAssisted       Boolean          @default(false) // rascunho sugerido pela IA (T5)
+  submittedBy      String?          // userId (nunca IP)
   submittedAt      DateTime         @default(now())
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -30,6 +33,7 @@ model PointFeature {
   @@index([city])
   @@index([moderationStatus])
   @@index([priority])
+  @@index([dataOrigin])
 }
 
 model HeatZone {

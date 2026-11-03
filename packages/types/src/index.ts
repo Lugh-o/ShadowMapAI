@@ -14,6 +14,7 @@ export type IssueType =
   | "school_route";
 export type Priority = "low" | "medium" | "high" | "critical";
 export type ModerationStatus = "pending" | "approved" | "rejected";
+export type DataOrigin = "collected" | "simulated";
 
 export interface PointFeature {
   id: string;
@@ -27,6 +28,9 @@ export interface PointFeature {
   description: string;
   priority: Priority;
   moderationStatus?: ModerationStatus;
+  dataOrigin: DataOrigin;
+  ref?: string | null;
+  aiAssisted?: boolean;
   submittedBy?: string;
   submittedAt?: string;
 }
@@ -45,7 +49,16 @@ export interface FiltersState {
   priority: Priority | "all";
 }
 
-export type PointFormValues = Omit<PointFeature, "id" | "moderationStatus" | "submittedBy" | "submittedAt">;
+export type PointFormValues = Omit<
+  PointFeature,
+  | "id"
+  | "moderationStatus"
+  | "dataOrigin"
+  | "ref"
+  | "aiAssisted"
+  | "submittedBy"
+  | "submittedAt"
+>;
 
 export interface NativeSpecies {
   id: string;

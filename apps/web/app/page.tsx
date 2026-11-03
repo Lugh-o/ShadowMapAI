@@ -1,31 +1,46 @@
 import ShadowMapDashboard from "@/components/ShadowMapDashboard";
 import heatZonesData from "@/data/heatZones.json";
-import pointsData from "@/data/points.json";
-import type { HeatZone, PointFeature } from "@shadowmap/types";
+import { prisma } from "@/lib/db";
+import type {
+  HeatLevel,
+  HeatZone,
+  IssueType,
+  PointFeature,
+  Priority,
+  ShadeLevel,
+} from "@shadowmap/types";
 
-async function fetchPoints(): Promise<PointFeature[]> {
-  try {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+// A página lê o banco a cada requisição: não deve ser pré-renderizada no build.
+export const dynamic = "force-dynamic";
 
-    const response = await fetch(`${baseUrl}/api/points`, {
-      cache: "no-store",
-    });
+async function getApprovedPoints(): Promise<PointFeature[]> {
+  const points = await prisma.pointFeature.findMany({
+    where: { moderationStatus: "approved" },
+    orderBy: { createdAt: "desc" },
+  });
 
-    if (!response.ok) {
-      return pointsData as PointFeature[];
-    }
-
-    const data = await response.json();
-    return data.length > 0 ? data : (pointsData as PointFeature[]);
-  } catch {
-    return pointsData as PointFeature[];
-  }
+  // Regra de ouro: só é "collected" o que declara explicitamente essa origem.
+  return points.map((point) => ({
+    id: point.id,
+    city: point.city as PointFeature["city"],
+    neighborhood: point.neighborhood,
+    lat: point.lat,
+    lng: point.lng,
+    heatLevel: point.heatLevel as HeatLevel,
+    shadeLevel: point.shadeLevel as ShadeLevel,
+    issueType: point.issueType as IssueType,
+    description: point.description,
+    priority: point.priority as Priority,
+    moderationStatus: point.moderationStatus as PointFeature["moderationStatus"],
+    dataOrigin: point.dataOrigin === "collected" ? "collected" : "simulated",
+    ref: point.ref,
+    aiAssisted: point.aiAssisted,
+    submittedAt: point.submittedAt.toISOString(),
+  }));
 }
 
 export default async function Home() {
-  const points = await fetchPoints();
+  const points = await getApprovedPoints();
 
   return (
     <ShadowMapDashboard

@@ -25,6 +25,7 @@ export default function PointMarkers({
     <>
       {points.map((point) => {
         const isSelected = point.id === selectedPointId;
+        const isSimulated = point.dataOrigin === "simulated";
 
         return (
           <CircleMarker
@@ -32,10 +33,13 @@ export default function PointMarkers({
             center={[point.lat, point.lng]}
             radius={isSelected ? 10 : 8}
             pathOptions={{
-              color: "#ffffff",
+              color: isSimulated ? "#64748B" : "#ffffff",
               weight: isSelected ? 3 : 2,
-              fillColor: getPointPriorityColor(point.priority),
-              fillOpacity: 0.95,
+              dashArray: isSimulated ? "4 3" : undefined,
+              fillColor: isSimulated
+                ? "#94A3B8"
+                : getPointPriorityColor(point.priority),
+              fillOpacity: isSimulated ? 0.85 : 0.95,
             }}
             eventHandlers={{
               click: () => onSelectPoint(point.id),
@@ -50,6 +54,11 @@ export default function PointMarkers({
                   <h3 className="font-display text-lg font-semibold">
                     {point.neighborhood}
                   </h3>
+                  {isSimulated ? (
+                    <span className="mt-1 inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700">
+                      Simulado
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="grid gap-1 text-sm">
@@ -77,6 +86,13 @@ export default function PointMarkers({
                 <p className="text-sm leading-6 text-emerald-950/78">
                   {point.description}
                 </p>
+
+                {isSimulated ? (
+                  <p className="rounded-[12px] bg-amber-50 px-2 py-1 text-xs leading-5 text-amber-950">
+                    Dado de demonstração. Não foi enviado por um morador nem
+                    representa medição de temperatura.
+                  </p>
+                ) : null}
               </div>
             </Popup>
           </CircleMarker>

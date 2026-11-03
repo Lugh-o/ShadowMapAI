@@ -13,6 +13,7 @@ const pointsData = [
     issueType: "low_tree_cover",
     description: "Baixa cobertura arbórea em via residencial movimentada.",
     priority: "high",
+    dataOrigin: "simulated",
     moderationStatus: "approved",
   },
   {
@@ -25,6 +26,7 @@ const pointsData = [
     issueType: "exposed_transit_stop",
     description: "Ponto de ônibus sem qualquer cobertura ou sombra.",
     priority: "critical",
+    dataOrigin: "simulated",
     moderationStatus: "approved",
   },
   {
@@ -37,6 +39,7 @@ const pointsData = [
     issueType: "school_route",
     description: "Rota escolar com exposição total ao sol.",
     priority: "critical",
+    dataOrigin: "simulated",
     moderationStatus: "approved",
   },
   {
@@ -49,6 +52,7 @@ const pointsData = [
     issueType: "heat_island",
     description: "Ilha de calor no centro comercial.",
     priority: "high",
+    dataOrigin: "simulated",
     moderationStatus: "approved",
   },
   {
@@ -61,6 +65,7 @@ const pointsData = [
     issueType: "paved_open_area",
     description: "Área pavimentada aberta sem vegetação.",
     priority: "medium",
+    dataOrigin: "simulated",
     moderationStatus: "approved",
   },
   {
@@ -73,6 +78,7 @@ const pointsData = [
     issueType: "low_tree_cover",
     description: "Vila residencial com poucas árvores.",
     priority: "high",
+    dataOrigin: "simulated",
     moderationStatus: "approved",
   },
   {
@@ -85,6 +91,7 @@ const pointsData = [
     issueType: "exposed_transit_stop",
     description: "Terminal de ônibus sem cobertura.",
     priority: "medium",
+    dataOrigin: "simulated",
     moderationStatus: "approved",
   },
   {
@@ -97,6 +104,7 @@ const pointsData = [
     issueType: "paved_open_area",
     description: "Área industrial com solo exposto e sem vegetação.",
     priority: "critical",
+    dataOrigin: "simulated",
     moderationStatus: "approved",
   },
   {
@@ -109,6 +117,7 @@ const pointsData = [
     issueType: "school_route",
     description: "Caminho da escola municipal sem sombreamento.",
     priority: "high",
+    dataOrigin: "simulated",
     moderationStatus: "approved",
   },
 ];

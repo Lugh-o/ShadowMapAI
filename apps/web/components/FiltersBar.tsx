@@ -13,6 +13,10 @@ interface FiltersBarProps {
   filters: FiltersState;
   totalPoints: number;
   filteredPoints: number;
+  collectedCount: number;
+  simulatedCount: number;
+  showSimulated: boolean;
+  onShowSimulatedChange: (value: boolean) => void;
   onFiltersChange: (filters: FiltersState) => void;
   onOpenForm: () => void;
 }
@@ -24,6 +28,10 @@ export default function FiltersBar({
   filters,
   totalPoints,
   filteredPoints,
+  collectedCount,
+  simulatedCount,
+  showSimulated,
+  onShowSimulatedChange,
   onFiltersChange,
   onOpenForm,
 }: FiltersBarProps) {
@@ -103,12 +111,24 @@ export default function FiltersBar({
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-emerald-950/10 bg-white/72 px-4 py-2 text-sm text-emerald-950/78">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-emerald-800"
+              checked={showSimulated}
+              onChange={(event) => onShowSimulatedChange(event.target.checked)}
+            />
+            <span className="leading-5">
+              Mostrar dados de demonstração (simulados)
+            </span>
+          </label>
+
           <div className="rounded-[22px] bg-white/72 px-4 py-3 text-sm text-emerald-950/72">
             <strong className="font-semibold text-emerald-950">
               {filteredPoints}
             </strong>{" "}
-            de {totalPoints} pontos visíveis. Clique no mapa para capturar uma
-            nova coordenada.
+            de {totalPoints} pontos visíveis · {collectedCount} coletados ·{" "}
+            {simulatedCount} simulados
           </div>
 
           <button

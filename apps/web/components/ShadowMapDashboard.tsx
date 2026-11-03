@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   AlertTriangle,
-  BookOpenText,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Info,
@@ -44,95 +42,12 @@ const initialFilters: FiltersState = {
   priority: "all",
 };
 
-const articleSections = [
-  {
-    id: "tema",
-    section: "Tema",
-    title: "Soluções interdisciplinares para as crises ambientais",
-    member: "Base central do artigo",
-    contribution:
-      "ShadowMap: Plataforma de Inteligência Coletiva para Mitigação de Ilhas de Calor e Arborização Urbana em Salvador/BA.",
-  },
-  {
-    id: "gestao",
-    section: "Eixo 1",
-    title: "Gestão Geral",
-    member: "Dantton Lavigne de Araújo Pinheiro",
-    contribution:
-      "Integração, formatação geral em LaTeX e revisão final do artigo.",
-  },
-  {
-    id: "contexto",
-    section: "1. Apresentação do Problema",
-    title: "Contextualização e a Ação Antrópica",
-    member: "Iago César Lacerda Santos",
-    contribution:
-      "Leitura do problema urbano e do papel da ação humana na intensificação do calor.",
-  },
-  {
-    id: "saude",
-    section: "1. Apresentação do Problema",
-    title: "Impactos na Saúde Pública e no Conforto Térmico",
-    member: "Beatriz Costa",
-    contribution:
-      "Análise dos efeitos do calor extremo sobre bem-estar, exposição e vulnerabilidade social.",
-  },
-  {
-    id: "economia",
-    section: "1. Apresentação do Problema",
-    title: "Impactos Econômicos e Ambientais",
-    member: "Douglas Sousa",
-    contribution:
-      "Levantamento dos impactos ambientais e dos custos urbanos associados à falta de sombra.",
-  },
-  {
-    id: "objetivo-geral",
-    section: "2. Objetivo",
-    title: "Objetivo Geral, Inovação e Mitigação",
-    member: "Henrique Souza",
-    contribution:
-      "Construção do objetivo central e da proposta de mitigação associada ao ShadowMap.",
-  },
-  {
-    id: "mvp",
-    section: "2. Objetivo",
-    title: "Exequibilidade Técnica e Telas-Modelo",
-    member: "João Victor Ramos",
-    contribution:
-      "Definição do MVP, das telas e da viabilidade técnica da plataforma.",
-  },
-  {
-    id: "engajamento",
-    section: "2. Objetivo",
-    title: "Engajamento e Educação da Comunidade",
-    member: "Patrícia Moreira de Oliveira",
-    contribution:
-      "Estrutura de participação comunitária e uso educativo da plataforma.",
-  },
-  {
-    id: "financeiro",
-    section: "2. Objetivo",
-    title: "Sustentabilidade Financeira em Longo Prazo",
-    member: "Ananda Silveira",
-    contribution:
-      "Caminhos para sustentação econômica e continuidade da proposta.",
-  },
-  {
-    id: "escala",
-    section: "2. Objetivo",
-    title: "Escalabilidade e Replicabilidade",
-    member: "Matheus Haig França Silva",
-    contribution:
-      "Expansão do modelo para outros territórios e replicação em novas cidades.",
-  },
-];
-
 const tourSteps = [
   {
     id: "mapa",
     title: "Mapa interativo",
     description:
-      "No mobile, o mapa precisa ficar livre para toque, arraste, zoom e seleção de pontos.",
+      "No celular, o mapa fica livre para toque, arraste, zoom e seleção de pontos.",
   },
   {
     id: "filtros",
@@ -141,16 +56,53 @@ const tourSteps = [
       "Use cidade, tipo de ocorrência e criticidade para reduzir o conjunto analisado.",
   },
   {
+    id: "dados",
+    title: "Coletado x simulado",
+    description:
+      "Por padrão o mapa mostra apenas relatos coletados. Dados de demonstração só aparecem ao ligar o botão e sempre vêm marcados como SIMULADO.",
+  },
+  {
     id: "cadastro",
     title: "Clique para cadastrar",
     description:
       "Toque no mapa para capturar latitude e longitude e abrir o formulário no painel lateral.",
   },
   {
-    id: "artigo",
-    title: "Base acadêmica",
+    id: "sobre",
+    title: "Sobre o projeto",
     description:
-      "O botão ao lado do selo abre o modal com a divisão do artigo e o link para o documento.",
+      "O botão ao lado do selo abre o modal com o que o projeto é e o que esta disciplina acrescenta.",
+  },
+];
+
+const comparisonRows = [
+  {
+    topic: "Registro de ocorrências",
+    original: "Formulário manual (calor, sombra e prioridade escolhidos pela pessoa)",
+    current:
+      "Descrição em linguagem natural → IA sugere classificação → pessoa confirma",
+  },
+  {
+    topic: "Apoio ao cidadão",
+    original: "Nenhum",
+    current: "Assistente conversacional com instruções de escopo e dados do projeto",
+  },
+  {
+    topic: "Análise",
+    original: "Painel de curadoria manual",
+    current:
+      "Dashboard com ranking transparente de bairros e indicador de amostra pequena",
+  },
+  {
+    topic: "Qualidade dos dados",
+    original: "Não tratada",
+    current:
+      "Validação anti-ruído (limites geográficos, duplicidade) e separação coletado/simulado",
+  },
+  {
+    topic: "Avaliação",
+    original: "—",
+    current: "Feedback, uso da IA e origem por aplicador do piloto",
   },
 ];
 
@@ -163,10 +115,10 @@ export default function ShadowMapDashboard({
   initialPoints,
   initialHeatZones,
 }: ShadowMapDashboardProps) {
-  const [points, setPoints] = useState(initialPoints);
+  const [points] = useState(initialPoints);
   const [filters, setFilters] = useState<FiltersState>(initialFilters);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(
-    initialPoints[0]?.id ?? null,
+    initialPoints.find((point) => point.dataOrigin === "collected")?.id ?? null,
   );
   const [draftLocation, setDraftLocation] = useState<{
     lat: number;
@@ -175,6 +127,13 @@ export default function ShadowMapDashboard({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
+  const [showSimulated, setShowSimulated] = useState(
+    process.env.NEXT_PUBLIC_SHOW_SIMULATED_DEFAULT === "true",
+  );
+  const [submitMessage, setSubmitMessage] = useState<{
+    tone: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -189,7 +148,16 @@ export default function ShadowMapDashboard({
     return () => window.clearTimeout(timer);
   }, []);
 
-  const filteredPoints = points.filter((point) => {
+  const collectedCount = points.filter(
+    (point) => point.dataOrigin === "collected",
+  ).length;
+  const simulatedCount = points.length - collectedCount;
+
+  const originPoints = points.filter(
+    (point) => showSimulated || point.dataOrigin === "collected",
+  );
+
+  const filteredPoints = originPoints.filter((point) => {
     const matchesCity = filters.city === "all" || point.city === filters.city;
     const matchesIssue =
       filters.issueType === "all" || point.issueType === filters.issueType;
@@ -199,9 +167,11 @@ export default function ShadowMapDashboard({
     return matchesCity && matchesIssue && matchesPriority;
   });
 
-  const visibleHeatZones = initialHeatZones.filter(
-    (zone) => filters.city === "all" || zone.city === filters.city,
-  );
+  const visibleHeatZones = showSimulated
+    ? initialHeatZones.filter(
+        (zone) => filters.city === "all" || zone.city === filters.city,
+      )
+    : [];
 
   const effectiveSelectedPointId = filteredPoints.some(
     (point) => point.id === selectedPointId,
@@ -210,13 +180,20 @@ export default function ShadowMapDashboard({
     : filteredPoints[0]?.id ?? null;
 
   const selectedPoint =
-    points.find((point) => point.id === effectiveSelectedPointId) ?? null;
+    originPoints.find((point) => point.id === effectiveSelectedPointId) ?? null;
   const criticalPoints = sortPointsByCriticality(filteredPoints).slice(0, 5);
   const criticalCount = filteredPoints.filter(
     (point) => point.priority === "critical",
   ).length;
+  const activeCities = new Set(filteredPoints.map((point) => point.city)).size;
+
+  const originLabel = showSimulated
+    ? "coletados + simulados"
+    : "somente coletados";
 
   async function handlePointSubmit(values: PointFormValues) {
+    setSubmitMessage(null);
+
     try {
       const response = await fetch("/api/points", {
         method: "POST",
@@ -231,21 +208,53 @@ export default function ShadowMapDashboard({
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        alert(error.error || "Erro ao cadastrar ponto. Tente novamente.");
+        const error = await response.json().catch(() => null);
+
+        if (response.status === 401) {
+          setSubmitMessage({
+            tone: "error",
+            text: "Entre na sua conta para enviar um relato.",
+          });
+          return;
+        }
+
+        if (error?.code === "DUPLICATE") {
+          setSubmitMessage({
+            tone: "error",
+            text: "Já existe um relato parecido muito perto deste local nas últimas 24 horas.",
+          });
+          return;
+        }
+
+        if (error?.code === "OUT_OF_REGION") {
+          setSubmitMessage({
+            tone: "error",
+            text: "Este local está fora da região do projeto. Marque um ponto em Salvador, Camaçari, Lauro de Freitas ou Simões Filho.",
+          });
+          return;
+        }
+
+        setSubmitMessage({
+          tone: "error",
+          text:
+            error?.error ||
+            "Não foi possível enviar o relato. Confira os campos e tente novamente.",
+        });
         return;
       }
 
-      const newPoint = await response.json();
-      setPoints((currentPoints) => [newPoint, ...currentPoints]);
-      setSelectedPointId(newPoint.id);
-      setFilters(initialFilters);
+      // O ponto enviado fica pendente de moderação: não entra no mapa ainda.
       setDraftLocation(null);
       setIsFormOpen(false);
-
-      alert("Ponto cadastrado com sucesso! Ele ficará pendente de aprovação até ser revisado pela equipe.");
+      setSubmitMessage({
+        tone: "success",
+        text: "Relato enviado! Ele ficará pendente de aprovação até ser revisado pela equipe.",
+      });
     } catch {
-      alert("Erro de conexão. Verifique sua internet e tente novamente.");
+      setSubmitMessage({
+        tone: "error",
+        text: "Erro de conexão. Verifique sua internet e tente novamente.",
+      });
     }
   }
 
@@ -289,9 +298,9 @@ export default function ShadowMapDashboard({
                   Mapeamento coletivo de calor urbano e baixa arborização
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-950/72 md:text-base">
-                  MVP acadêmico para visualizar zonas críticas e registrar novos
-                  pontos em Salvador, Camaçari, Lauro de Freitas e Simões
-                  Filho.
+                  Projeto de extensão da UCSAL para registrar, com a comunidade,
+                  pontos de desconforto térmico em Salvador, Camaçari, Lauro de
+                  Freitas e Simões Filho.
                 </p>
               </div>
             </div>
@@ -299,30 +308,74 @@ export default function ShadowMapDashboard({
             <div className="grid gap-3 sm:grid-cols-3">
               <MetricCard
                 icon={MapPinned}
-                label="Pontos monitorados"
+                label={`Relatos (${originLabel})`}
                 value={String(filteredPoints.length)}
                 tone="emerald"
               />
               <MetricCard
                 icon={AlertTriangle}
-                label="Ocorrências críticas"
+                label={`Críticos (${originLabel})`}
                 value={String(criticalCount)}
                 tone="amber"
               />
               <MetricCard
                 icon={Trees}
-                label="Cidades ativas"
-                value="4"
+                label="Cidades com relatos"
+                value={String(activeCities)}
                 tone="teal"
               />
             </div>
           </div>
         </header>
 
+        {submitMessage ? (
+          <div
+            role="status"
+            className={cn(
+              "flex items-start justify-between gap-3 rounded-[24px] border px-4 py-3 text-sm",
+              submitMessage.tone === "success"
+                ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                : "border-rose-300 bg-rose-50 text-rose-900",
+            )}
+          >
+            <p className="leading-6">{submitMessage.text}</p>
+            <button
+              type="button"
+              onClick={() => setSubmitMessage(null)}
+              className="shrink-0 rounded-full p-1 hover:bg-white/60"
+              aria-label="Fechar aviso"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
+
+        {collectedCount === 0 ? (
+          <section className="glass-panel rounded-[28px] p-5 md:p-6">
+            <p className="font-display text-lg font-semibold text-emerald-950">
+              Ainda não há relatos coletados nesta região.
+            </p>
+            <p className="mt-1 text-sm leading-6 text-emerald-950/72">
+              Seja a primeira pessoa a registrar um ponto.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsFormOpen(true)}
+              className="mt-4 inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-900 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800"
+            >
+              Registrar um ponto
+            </button>
+          </section>
+        ) : null}
+
         <FiltersBar
           filters={filters}
-          totalPoints={points.length}
+          totalPoints={originPoints.length}
           filteredPoints={filteredPoints.length}
+          collectedCount={collectedCount}
+          simulatedCount={simulatedCount}
+          showSimulated={showSimulated}
+          onShowSimulatedChange={setShowSimulated}
           onFiltersChange={setFilters}
           onOpenForm={() => setIsFormOpen(true)}
         />
@@ -339,12 +392,15 @@ export default function ShadowMapDashboard({
             />
 
             <div className="pointer-events-none absolute inset-x-3 bottom-3 z-[500] hidden md:block md:inset-x-auto md:left-3">
-              <Legend className="pointer-events-auto" />
+              <Legend
+                className="pointer-events-auto"
+                showSimulated={showSimulated}
+              />
             </div>
           </section>
 
           <div className="md:hidden">
-            <Legend className="max-w-none" />
+            <Legend className="max-w-none" showSimulated={showSimulated} />
           </div>
 
           <Sidebar
@@ -352,7 +408,7 @@ export default function ShadowMapDashboard({
             draftLocation={draftLocation}
             isFormOpen={isFormOpen}
             selectedPoint={selectedPoint}
-            totalPoints={points.length}
+            totalPoints={originPoints.length}
             onCloseForm={() => setIsFormOpen(false)}
             onOpenForm={() => setIsFormOpen(true)}
             onSelectPoint={setSelectedPointId}
@@ -361,7 +417,7 @@ export default function ShadowMapDashboard({
         </div>
       </div>
 
-      <AcademicInfoModal
+      <AboutProjectModal
         isOpen={isInfoOpen}
         onClose={() => setIsInfoOpen(false)}
         onOpenTour={reopenTour}
@@ -408,7 +464,7 @@ function MetricCard({ icon: Icon, label, value, tone }: MetricCardProps) {
   );
 }
 
-function AcademicInfoModal({
+function AboutProjectModal({
   isOpen,
   onClose,
   onOpenTour,
@@ -417,8 +473,6 @@ function AcademicInfoModal({
   onClose: () => void;
   onOpenTour: () => void;
 }) {
-  const [openSectionId, setOpenSectionId] = useState(articleSections[0].id);
-
   useOverlayBodyLock(isOpen);
 
   if (!isOpen) return null;
@@ -429,10 +483,10 @@ function AcademicInfoModal({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-              Referência acadêmica
+              Sobre o projeto
             </p>
             <h2 className="mt-1 font-display text-2xl font-semibold text-emerald-950">
-              Base do artigo e divisão dos componentes
+              O que é o ShadowMap AI
             </h2>
           </div>
 
@@ -446,116 +500,74 @@ function AcademicInfoModal({
           </button>
         </div>
 
-        <div className="mt-5 flex-1 overflow-y-auto pr-0 md:pr-1">
-          <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-            <section className="card-strong rounded-[24px] p-4">
-              <h3 className="font-display text-lg font-semibold text-emerald-950">
-                Partes usadas como base para o MVP
-              </h3>
-              <div className="mt-3 space-y-3 text-sm leading-6 text-emerald-950/78">
-                <p>
-                  <strong>Mapeamento espacial:</strong> transformação da ideia
-                  do artigo em um mapa interativo com camadas de zonas de calor
-                  e pontos críticos.
-                </p>
-                <p>
-                  <strong>Leitura territorial:</strong> filtros por cidade,
-                  criticidade e tipo de ocorrência para apoiar análise rápida.
-                </p>
-                <p>
-                  <strong>Participação coletiva:</strong> fluxo de cadastro
-                  manual de novos pontos para simular colaboração comunitária.
-                </p>
-              </div>
+        <div className="mt-5 flex-1 space-y-4 overflow-y-auto pr-0 md:pr-1">
+          <section className="card-strong rounded-[24px] p-4 text-sm leading-6 text-emerald-950/78">
+            <p>
+              O ShadowMap AI é um projeto de extensão da UCSAL sobre ilhas de
+              calor e arborização urbana na Região Metropolitana de Salvador.
+              Moradores registram pontos de desconforto térmico e a equipe
+              revisa cada relato antes de publicá-lo no mapa.
+            </p>
+          </section>
 
-              <div className="mt-4 flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={onOpenTour}
-                  className="inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-900 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800"
-                >
-                  Abrir guia do MVP
-                </button>
+          <section className="card-strong rounded-[24px] p-4">
+            <h3 className="font-display text-lg font-semibold text-emerald-950">
+              O que esta disciplina acrescenta
+            </h3>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[620px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="text-[11px] uppercase tracking-[0.14em] text-emerald-950/55">
+                    <th className="border-b border-emerald-950/10 py-2 pr-3">
+                      Tema
+                    </th>
+                    <th className="border-b border-emerald-950/10 py-2 pr-3">
+                      Versão original
+                    </th>
+                    <th className="border-b border-emerald-950/10 py-2">
+                      Esta disciplina
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="text-emerald-950/78">
+                  {comparisonRows.map((row) => (
+                    <tr key={row.topic} className="align-top">
+                      <th className="border-b border-emerald-950/10 py-3 pr-3 font-semibold text-emerald-950">
+                        {row.topic}
+                      </th>
+                      <td className="border-b border-emerald-950/10 py-3 pr-3">
+                        {row.original}
+                      </td>
+                      <td className="border-b border-emerald-950/10 py-3">
+                        {row.current}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-                <Link
-                  href="https://www.overleaf.com/read/hsgcyrkcgxjv#32447f"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-100 px-4 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-200"
-                >
-                  <BookOpenText className="h-4 w-4" />
-                  Artigo no Overleaf
-                </Link>
-              </div>
-            </section>
+          <section className="rounded-[24px] border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+            <strong>Dados marcados como SIMULADO servem apenas para demonstração.</strong>{" "}
+            Eles não foram enviados por moradores e não representam medições de
+            temperatura.
+          </section>
 
-            <section className="card-strong rounded-[24px] p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-                    Estrutura interativa
-                  </p>
-                  <h3 className="mt-1 font-display text-lg font-semibold text-emerald-950">
-                    Divisão do artigo
-                  </h3>
-                </div>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900">
-                  {articleSections.length} blocos
-                </span>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {articleSections.map((section) => {
-                  const isOpenSection = section.id === openSectionId;
-
-                  return (
-                    <article
-                      key={section.id}
-                      className={cn(
-                        "overflow-hidden rounded-[22px] border transition",
-                        isOpenSection
-                          ? "border-emerald-400/55 bg-emerald-50"
-                          : "border-emerald-950/10 bg-white/78",
-                      )}
-                    >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setOpenSectionId((currentId) =>
-                            currentId === section.id ? "" : section.id,
-                          )
-                        }
-                        className="flex min-h-14 w-full items-start justify-between gap-4 px-4 py-4 text-left"
-                      >
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/50">
-                            {section.section}
-                          </p>
-                          <h4 className="mt-1 font-display text-base font-semibold text-emerald-950">
-                            {section.title}
-                          </h4>
-                          <p className="mt-2 text-sm font-medium text-emerald-900/88">
-                            {section.member}
-                          </p>
-                        </div>
-                        <ChevronDown
-                          className={cn(
-                            "mt-1 h-5 w-5 shrink-0 text-emerald-900 transition-transform",
-                            isOpenSection && "rotate-180",
-                          )}
-                        />
-                      </button>
-
-                      {isOpenSection ? (
-                        <div className="border-t border-emerald-950/10 px-4 py-4 text-sm leading-6 text-emerald-950/76">
-                          {section.contribution}
-                        </div>
-                      ) : null}
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={onOpenTour}
+              className="inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-900 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800"
+            >
+              Abrir guia do MVP
+            </button>
+            <Link
+              href="/privacidade"
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-emerald-100 px-4 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-200"
+            >
+              Política de privacidade
+            </Link>
           </div>
         </div>
       </div>
