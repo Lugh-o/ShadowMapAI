@@ -1,3 +1,7 @@
+> ⚠️ **Documento histórico — substituído por `docs/SPEC_MVP_SHADOWMAP_AI.md`.**
+> O escopo, as decisões e o status atual do MVP estão na spec. Este arquivo é
+> mantido apenas como registro da Fase 1.
+
 # ShadowMap AI — Plano de Implementação e Contexto
 
 > Documento de referência técnica gerado a partir da análise do repositório `shadowmap-main` (MVP em Next.js) e do escopo definido na Fase 1 do projeto de extensão *Tecnologias e Inteligências Artificiais* (UCSAL).

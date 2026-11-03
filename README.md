@@ -1,122 +1,120 @@
 # ShadowMap AI
 
-Plataforma de mapeamento de ilhas de calor urbanas e arborização em Salvador/BA, com inteligência artificial para classificação de cobertura vegetal, recomendação de espécies nativas e assistente comunitário.
+Plataforma de mapeamento colaborativo de ilhas de calor e baixa arborização na
+Região Metropolitana de Salvador, com assistente de IA e painel de análise
+transparente. Projeto de extensão da UCSAL (disciplina Tecnologias e
+Inteligências Artificiais).
 
-## Estrutura do Monorepo
+## Status
+
+Este README descreve apenas o que existe no repositório. Funcionalidades
+planejadas ficam explicitamente marcadas como tal.
+
+| Status | O que é |
+|---|---|
+| **Implementado** | Mapa interativo com filtros, cadastro de pontos com moderação, autenticação (e-mail/senha e Google), painel de moderação, rate limit básico |
+| **Em desenvolvimento (MVP)** | Separação entre dados coletados e simulados, validação geográfica e anti-duplicidade, assistente de IA (Gemini) com consentimento e cotas, rascunho de ponto por linguagem natural, dashboard público, instrumentação do piloto (`ref`, feedback), página de privacidade |
+| **Planejado (trabalho futuro)** | Classificação de cobertura vegetal por satélite/NDVI, índice com temperatura de superfície, recomendação de espécies por aprendizado de máquina, PWA/modo offline, upload de fotos, notificações |
+
+> **Importante:** não há classificação por satélite nem NDVI implementados. A
+> pasta `apps/vegetation-job` não contém código funcional e está fora do escopo
+> deste MVP.
+
+## Estrutura do monorepo
 
 ```
 shadowmap-ai/
 ├── apps/
-│   ├── web/                 # App Next.js (dashboard, mapa, API routes)
-│   └── vegetation-job/      # Job Python de classificação de cobertura vegetal
+│   └── web/                 # Next.js 16 (mapa, dashboard, API routes)
 ├── packages/
-│   ├── db/                  # Schema Prisma/Drizzle + client compartilhado
+│   ├── db/                  # Schema Prisma e client compartilhado
 │   ├── types/               # Tipos TypeScript compartilhados
-│   └── species-data/        # Base de espécies nativas
+│   └── species-data/        # Base de espécies nativas revisada
+├── docs/
+│   └── SPEC_MVP_SHADOWMAP_AI.md
 ├── pnpm-workspace.yaml
 └── package.json
 ```
 
 ## Stack
 
-- **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS 4, Leaflet/react-leaflet
-- **Backend:** Next.js API Routes, Prisma ORM
-- **Banco de dados:** PostgreSQL + PostGIS (Neon ou Supabase)
-- **IA:** Google AI Studio (Gemini 1.5 Flash) para assistente comunitário
+- **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4,
+  Leaflet/react-leaflet
+- **Backend:** Route Handlers do Next.js, Prisma ORM
+- **Banco:** PostgreSQL + PostGIS (Neon ou Supabase)
+- **IA:** Gemini (modelo configurado por `GEMINI_MODEL`)
 - **Gerenciador:** pnpm workspaces
-
-## Funcionalidades
-
-### Dashboard e Mapa
-- Mapa interativo com zonas de calor e marcadores de pontos
-- Filtros por cidade, tipo de ocorrência e criticidade
-- Formulário de cadastro de ponto com captura de coordenadas
-- Tour guiado e modal com base acadêmica
-
-### Backend e Persistência
-- API REST para CRUD de pontos (`/api/points`)
-- Índice de prioridade climática (`/api/priority`)
-- Assistente comunitário via NLP (`/api/assistant`)
-- Recomendador de espécies nativas (`/api/species`)
-- Rate limiting por IP
-- Moderação de pontos (pendente/aprovado/rejeitado)
-
-### Painel de Moderação
-- Acesso em `/admin` com autenticação por senha
-- Listagem de pontos pendentes
-- Aprovação, rejeição ou exclusão de pontos
-
-### IA e Análise
-- Classificação de cobertura vegetal por satélite (Sentinel-2 + NDVI)
-- Índice de prioridade climática por microrregião
-- Assistente comunitário com Gemini 1.5 Flash
-- Recomendador de espécies nativas baseado em regras
 
 ## Configuração
 
-### 1. Instalar dependências
+1. Instale as dependências:
 
-```bash
-pnpm install
-```
+   ```bash
+   pnpm install
+   ```
 
-### 2. Configurar banco de dados
+2. Copie `apps/web/.env.example` para `apps/web/.env` e preencha os valores.
+   Gere o `AUTH_SECRET` com `openssl rand -base64 32`.
 
-Crie um arquivo `.env` em `apps/web/`:
+3. Gere o client do Prisma e aplique o schema:
 
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/shadowmap"
-GOOGLE_AI_API_KEY="sua-chave-aqui"
-ADMIN_PASSWORD="sua-senha-admin"
-```
+   ```bash
+   pnpm db:generate
+   pnpm db:push
+   ```
 
-### 3. Rodar migrations
+4. (Opcional, apenas para demonstração) Popule dados **simulados**:
 
-```bash
-pnpm db:generate
-pnpm db:push
-```
+   ```bash
+   pnpm db:seed
+   ```
 
-### 4. Seed do banco (opcional)
+   O seed cria pontos marcados como `simulated`. Nunca rode o seed no banco do
+   piloto sem essa marcação — e prefira não rodar.
 
-```bash
-pnpm db:seed
-```
+5. Inicie o servidor:
 
-### 5. Iniciar desenvolvimento
+   ```bash
+   pnpm dev
+   ```
 
-```bash
-pnpm dev
-```
+6. Confirme o modelo Gemini disponível para a sua chave:
 
-A aplicação ficará disponível em `http://localhost:3000`.
+   ```bash
+   pnpm --filter @shadowmap/web check:gemini
+   ```
 
-## API Routes
+## Variáveis de ambiente
+
+Todas estão documentadas em `apps/web/.env.example`. Nunca commite o `.env`
+real. Se um `.env` foi compartilhado por engano, **gire todas as chaves**
+(`GOOGLE_AI_API_KEY`, `GOOGLE_CLIENT_SECRET`, `AUTH_SECRET`, senha do banco).
+
+## API
 
 | Rota | Método | Descrição |
-|------|--------|-----------|
-| `/api/points` | GET | Listar pontos aprovados |
-| `/api/points` | POST | Cadastrar novo ponto |
-| `/api/priority` | GET | Índice de prioridade climática |
-| `/api/species` | GET | Recomendar espécies nativas |
-| `/api/assistant` | POST | Chat com assistente comunitário |
-| `/api/admin` | GET | Listar todos os pontos (admin) |
-| `/api/admin` | PATCH | Atualizar status de moderação |
-| `/api/admin` | DELETE | Excluir ponto |
+|---|---|---|
+| `/api/points` | GET | Lista pontos aprovados (público) |
+| `/api/points` | POST | Cadastra ponto (login obrigatório, moderação pendente) |
+| `/api/assistant` | POST | Assistente de IA (login + consentimento + cota) |
+| `/api/assistant/draft-point` | POST | Transforma relato em rascunho de ponto |
+| `/api/feedback` | POST | Feedback do piloto |
+| `/api/species` | GET | Recomendador de espécies por regras |
+| `/api/admin` | GET/PATCH/DELETE | Moderação (somente e-mails em `ADMIN_EMAILS`) |
+| `/api/admin/export` | GET | Exportação CSV (somente admin) |
+| `/api/dashboard/summary` | GET | Dados agregados do dashboard |
+| `/api/config` | GET | Configuração pública do piloto |
+
+Rotas removidas: `/api/priority` (dependia de dados de satélite inexistentes) e
+`/api/auth/verify` (verificação de senha passou para dentro do Auth.js).
 
 ## Deploy
 
-### Vercel
-
-1. Conecte o repositório ao Vercel
-2. Configure o **Root Directory** como `apps/web`
-3. Adicione as variáveis de ambiente no painel
-4. Deploy automático
-
-### Banco de dados
-
-Recomendado: Neon ou Supabase (Postgres + PostGIS), free tier suficiente para piloto acadêmico.
+1. Conecte o repositório à Vercel.
+2. Configure o **Root Directory** como `apps/web`.
+3. Adicione as variáveis de ambiente no painel.
+4. Deploy automático.
 
 ## Licença
 
-Projeto acadêmico - UCSAL
+Projeto acadêmico — UCSAL.

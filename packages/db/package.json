@@ -8,10 +8,10 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "generate": "prisma generate",
-    "push": "prisma db push",
-    "migrate": "prisma migrate dev",
-    "studio": "prisma studio"
+    "generate": "cd ../../apps/web && prisma generate --schema ../../packages/db/prisma/schema.prisma",
+    "push": "cd ../../apps/web && prisma db push --schema ../../packages/db/prisma/schema.prisma",
+    "migrate": "cd ../../apps/web && prisma migrate dev --schema ../../packages/db/prisma/schema.prisma",
+    "studio": "cd ../../apps/web && prisma studio --schema ../../packages/db/prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",

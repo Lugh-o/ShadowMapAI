@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "check:gemini": "node --env-file=.env --import tsx scripts/check-gemini.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
