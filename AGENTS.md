@@ -35,7 +35,8 @@ pnpm build                  # Build Next.js app
 ## Key Files
 
 - `apps/web/app/api/points/route.ts` - Points CRUD API
-- `apps/web/app/api/priority/route.ts` - Climate priority index
+- `apps/web/app/dashboard/page.tsx` - Public dashboard
+- `apps/web/app/api/dashboard/summary/route.ts` - Dashboard aggregate API
 - `apps/web/app/api/assistant/route.ts` - NLP assistant (Gemini)
 - `apps/web/app/api/species/route.ts` - Species recommender
 - `apps/web/app/api/admin/route.ts` - Moderation API

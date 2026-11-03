@@ -80,23 +80,6 @@ export interface SpeciesMatch {
   reasons: string[];
 }
 
-export interface PriorityScore {
-  regionId: string;
-  regionName: string;
-  city: City;
-  score: number;
-  vegetationCoverage: number;
-  heatIntensity: number;
-  populationDensity: number;
-  citizenReports: number;
-  factors: {
-    vegetation: number;
-    heat: number;
-    density: number;
-    reports: number;
-  };
-}
-
 export interface AssistantMessage {
   role: "user" | "assistant";
   content: string;
