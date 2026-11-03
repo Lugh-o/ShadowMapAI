@@ -1,20 +1,27 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Bot, User } from "lucide-react";
+import { useSession, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { MessageCircle, X, Send, Bot, User, LogIn, AlertTriangle } from "lucide-react";
 import type { AssistantMessage } from "@shadowmap/types";
 
 export default function AssistantChat() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<AssistantMessage[]>([
     {
       role: "assistant",
       content:
-        "Olá! Sou o assistente do ShadowMap AI. Posso ajudar com informações sobre ilhas de calor, espécies nativas para plantio ou como cadastrar pontos. Como posso ajudar?",
+        session?.user?.name
+          ? `Olá, ${session.user.name}! Sou o assistente do ShadowMap AI. Posso ajudar com informações sobre ilhas de calor, espécies nativas para plantio ou como cadastrar pontos. Como posso ajudar?`
+          : "Olá! Sou o assistente do ShadowMap AI. Posso ajudar com informações sobre ilhas de calor, espécies nativas para plantio ou como cadastrar pontos. Como posso ajudar?",
     },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,7 +30,12 @@ export default function AssistantChat() {
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+    if (status !== "authenticated") {
+      setError("Faça login para usar o assistente");
+      return;
+    }
 
+    setError(null);
     const userMessage: AssistantMessage = { role: "user", content: input.trim() };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
@@ -35,6 +47,19 @@ export default function AssistantChat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: [...messages, userMessage] }),
       });
+
+      if (response.status === 401) {
+        setError("Faça login para usar o assistente");
+        setMessages((prev) => prev.filter((m) => m !== userMessage));
+        return;
+      }
+
+      if (response.status === 429) {
+        const data = await response.json();
+        setError(data.message || "Limite de mensagens atingido");
+        setMessages((prev) => prev.filter((m) => m !== userMessage));
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Failed to get response");
@@ -95,6 +120,35 @@ export default function AssistantChat() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {status === "unauthenticated" && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-amber-800">
+                      Login necessário
+                    </p>
+                    <p className="mt-1 text-sm text-amber-700">
+                      Faça login para usar o assistente de IA.
+                    </p>
+                    <button
+                      onClick={() => router.push("/login")}
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-amber-700"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      Entrar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
             {messages.map((msg, index) => (
               <div
                 key={index}
@@ -145,13 +199,17 @@ export default function AssistantChat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Digite sua mensagem..."
+                placeholder={
+                  status === "unauthenticated"
+                    ? "Faça login para usar..."
+                    : "Digite sua mensagem..."
+                }
                 className="flex-1 rounded-xl border border-emerald-950/10 bg-white px-4 py-2.5 text-sm text-emerald-950 placeholder:text-emerald-950/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                disabled={isLoading}
+                disabled={isLoading || status !== "authenticated"}
               />
               <button
                 onClick={sendMessage}
-                disabled={!input.trim() || isLoading}
+                disabled={!input.trim() || isLoading || status !== "authenticated"}
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-900 text-white transition hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Enviar mensagem"
               >

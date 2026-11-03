@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimit, consumeGlobalDailyQuota, getClientIp } from "@/lib/rate-limit";
+import { auth } from "@/auth";
 import type { AssistantMessage } from "@shadowmap/types";
 
 const SYSTEM_PROMPT = `Você é o assistente comunitário do ShadowMap AI, uma plataforma de mapeamento de ilhas de calor urbanas em Salvador e região metropolitana.
@@ -38,10 +39,26 @@ Como cadastrar um ponto:
 Obrigado por participar do ShadowMap AI!`;
 
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: "Login required", message: "Faça login para usar o assistente" },
+      { status: 401 }
+    );
+  }
+
   const ip = getClientIp(request);
   const { allowed } = checkRateLimit(ip);
   if (!allowed) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
+
+  const { allowed: dailyAllowed, remaining } = await consumeGlobalDailyQuota();
+  if (!dailyAllowed) {
+    return NextResponse.json(
+      { error: "Daily limit reached", message: "Limite diário de 1500 mensagens atingido" },
+      { status: 429 }
+    );
   }
 
   const apiKey = process.env.GOOGLE_AI_API_KEY;

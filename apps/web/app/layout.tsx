@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Sora, Space_Grotesk } from "next/font/google";
+import SessionProvider from "@/components/SessionProvider";
+import Navbar from "@/components/Navbar";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -28,7 +30,12 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${spaceGrotesk.variable} ${sora.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <SessionProvider>
+          <Navbar />
+          {children}
+        </SessionProvider>
+      </body>
     </html>
   );
 }

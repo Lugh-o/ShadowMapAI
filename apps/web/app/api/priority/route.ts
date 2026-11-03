@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const city = searchParams.get("city") as City | null;
+  const city = searchParams.get("city") as City | "all" | null;
 
   const where: Record<string, unknown> = {};
   if (city && city !== "all") {
