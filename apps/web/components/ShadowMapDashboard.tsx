@@ -16,7 +16,9 @@ import {
 import AssistantChat from "@/components/AssistantChat";
 import FiltersBar from "@/components/FiltersBar";
 import Legend from "@/components/Legend";
+import PointFeedbackModal from "@/components/PointFeedbackModal";
 import Sidebar from "@/components/Sidebar";
+import { usePilotRef } from "@/lib/use-pilot-ref";
 import { cn, sortPointsByCriticality } from "@/lib/utils";
 import type {
   FiltersState,
@@ -140,6 +142,8 @@ export default function ShadowMapDashboard({
     tone: "success" | "error";
     text: string;
   } | null>(null);
+  const [feedbackPointId, setFeedbackPointId] = useState<string | null>(null);
+  const pilotRef = usePilotRef();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -214,6 +218,7 @@ export default function ShadowMapDashboard({
           neighborhood: values.neighborhood.trim(),
           description: values.description.trim(),
           aiAssisted: submittedWithAi,
+          ref: pilotRef ?? undefined,
         }),
       });
 
@@ -253,6 +258,10 @@ export default function ShadowMapDashboard({
         return;
       }
 
+      const created = (await response.json().catch(() => null)) as {
+        id?: string;
+      } | null;
+
       // O ponto enviado fica pendente de moderação: não entra no mapa ainda.
       setDraftLocation(null);
       setDraftValues(null);
@@ -262,6 +271,7 @@ export default function ShadowMapDashboard({
         tone: "success",
         text: "Relato enviado! Ele ficará pendente de aprovação até ser revisado pela equipe.",
       });
+      setFeedbackPointId(created?.id ?? "");
     } catch {
       setSubmitMessage({
         tone: "error",
@@ -470,6 +480,14 @@ export default function ShadowMapDashboard({
       />
 
       <TourModal isOpen={isTourOpen} onClose={closeTour} />
+
+      <PointFeedbackModal
+        key={feedbackPointId ?? "closed"}
+        isOpen={feedbackPointId !== null}
+        pointId={feedbackPointId}
+        pilotRef={pilotRef}
+        onClose={() => setFeedbackPointId(null)}
+      />
 
       <AssistantChat onUseDraft={handleUseDraft} />
     </main>

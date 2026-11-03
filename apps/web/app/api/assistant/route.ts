@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { normalizePilotRef } from "@/lib/pilot-ref";
 import { loadAssistantContext } from "@/lib/assistant/context";
 import {
   AssistantUnavailableError,
@@ -93,6 +94,7 @@ export async function POST(request: Request) {
 
   const data = parsed.data;
   const userId = session.user.id;
+  const pilotRef = normalizePilotRef(data.ref);
 
   const user = await prisma.user
     .findUnique({
@@ -262,7 +264,7 @@ export async function POST(request: Request) {
         where: { id: conversation.id },
         data: {
           messages: messages as unknown as Prisma.InputJsonValue,
-          ref: data.ref ?? conversation.ref,
+          ref: pilotRef ?? conversation.ref,
         },
       });
 
@@ -272,7 +274,7 @@ export async function POST(request: Request) {
         data: {
           sessionId: crypto.randomUUID(),
           userId,
-          ref: data.ref ?? null,
+          ref: pilotRef,
           messages: messages as unknown as Prisma.InputJsonValue,
         },
       });

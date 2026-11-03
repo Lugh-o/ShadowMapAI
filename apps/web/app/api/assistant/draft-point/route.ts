@@ -20,6 +20,12 @@ const bodySchema = z.object({
     .enum(["Salvador", "Camaçari", "Lauro de Freitas", "Simões Filho"])
     .optional(),
   neighborhood: z.string().trim().min(2).max(80).optional(),
+  ref: z
+    .string()
+    .trim()
+    .max(64)
+    .regex(/^[a-z0-9_-]+$/i)
+    .optional(),
 });
 
 export async function POST(request: Request) {

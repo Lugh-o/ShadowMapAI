@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 
+import { usePilotRef } from "@/lib/use-pilot-ref";
 import {
   getHeatLevelLabel,
   getIssueTypeLabel,
@@ -76,6 +77,7 @@ export default function AssistantChat({ onUseDraft }: AssistantChatProps) {
   const [draftError, setDraftError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const userEmail = session?.user?.email ?? null;
+  const pilotRef = usePilotRef();
 
   useEffect(() => {
     const key = consentStorageKey(userEmail);
@@ -123,6 +125,7 @@ export default function AssistantChat({ onUseDraft }: AssistantChatProps) {
           conversationId: conversationId ?? undefined,
           message: text,
           consent: true,
+          ref: pilotRef ?? undefined,
         }),
       });
 
@@ -245,7 +248,7 @@ export default function AssistantChat({ onUseDraft }: AssistantChatProps) {
       const response = await fetch("/api/assistant/draft-point", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, ref: pilotRef ?? undefined }),
       });
 
       if (response.status === 401) {
@@ -534,7 +537,7 @@ export default function AssistantChat({ onUseDraft }: AssistantChatProps) {
                         msg.content
                       )}
                       {msg.role === "assistant" && msg.id ? (
-                        <MessageFeedback messageId={msg.id} />
+                        <MessageFeedback messageId={msg.id} pilotRef={pilotRef} />
                       ) : null}
                     </div>
                     {msg.role === "user" && (
@@ -722,7 +725,13 @@ function renderInline(text: string): React.ReactNode[] {
   });
 }
 
-function MessageFeedback({ messageId }: { messageId: string }) {
+function MessageFeedback({
+  messageId,
+  pilotRef,
+}: {
+  messageId: string;
+  pilotRef: string | null;
+}) {
   const [rating, setRating] = useState<1 | -1 | null>(null);
   const [comment, setComment] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
@@ -743,6 +752,7 @@ function MessageFeedback({ messageId }: { messageId: string }) {
           targetId: messageId,
           rating,
           comment: comment.trim() || undefined,
+          ref: pilotRef ?? undefined,
         }),
       });
 

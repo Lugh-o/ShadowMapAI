@@ -5,8 +5,10 @@ import { prisma } from "@/lib/db";
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
+    const normalizedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
 
-    if (!email || !password) {
+    if (!normalizedEmail || typeof password !== "string" || !password) {
       return NextResponse.json(
         { error: "Email and password required" },
         { status: 400 }
@@ -14,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (!user || !user.password) {

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { haversineMeters, isInsideBBox } from "@/lib/geo";
 import { prisma } from "@/lib/db";
+import { normalizePilotRef } from "@/lib/pilot-ref";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { derivePriority } from "@/lib/utils";
 import { pointSubmissionSchema } from "@/lib/validation";
@@ -195,7 +196,7 @@ export async function POST(request: Request) {
       moderationStatus: "pending",
       dataOrigin: "collected",
       aiAssisted: data.aiAssisted ?? false,
-      ref: data.ref ?? null,
+      ref: normalizePilotRef(data.ref),
       submittedBy: session.user.id,
     },
     select: publicPointSelect,

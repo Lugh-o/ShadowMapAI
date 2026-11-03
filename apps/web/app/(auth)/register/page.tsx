@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +28,11 @@ export default function RegisterPage() {
 
     if (password.length < 8) {
       setError("A senha deve ter pelo menos 8 caracteres");
+      return;
+    }
+
+    if (!acceptedPrivacy) {
+      setError("Para criar a conta, leia e aceite a política de privacidade.");
       return;
     }
 
@@ -65,6 +71,11 @@ export default function RegisterPage() {
   }
 
   async function handleGoogleLogin() {
+    if (!acceptedPrivacy) {
+      setError("Para criar a conta, leia e aceite a política de privacidade.");
+      return;
+    }
+
     await signIn("google", { callbackUrl: "/" });
   }
 
@@ -177,6 +188,32 @@ export default function RegisterPage() {
                   className="w-full rounded-xl border border-emerald-950/10 bg-white py-2.5 pl-10 pr-4 text-sm text-emerald-950 placeholder:text-emerald-950/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
+            </div>
+
+            <div className="flex items-start gap-3 rounded-xl border border-emerald-950/10 bg-emerald-50/60 p-3">
+              <input
+                id="privacy"
+                type="checkbox"
+                checked={acceptedPrivacy}
+                onChange={(event) => setAcceptedPrivacy(event.target.checked)}
+                required
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-emerald-950/30 text-emerald-800 focus:ring-emerald-500"
+              />
+              <label
+                htmlFor="privacy"
+                className="text-sm leading-5 text-emerald-950/75"
+              >
+                Li e concordo com a{" "}
+                <Link
+                  href="/privacidade"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-emerald-800 underline underline-offset-2"
+                >
+                  política de privacidade
+                </Link>
+                .
+              </label>
             </div>
 
             {error && (

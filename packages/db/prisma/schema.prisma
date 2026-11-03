@@ -100,6 +100,21 @@ model NativeSpecies {
   @@index([family])
 }
 
+model Feedback {
+  id         String   @id @default(cuid())
+  userId     String?
+  ref        String?
+  targetType String // "assistant_message" | "point_submitted" | "app"
+  targetId   String?
+  rating     Int // 1-5 ou -1/1 para polegar
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([ref])
+  @@index([targetType])
+}
+
 model AssistantConversation {
   id        String   @id @default(cuid())
   sessionId String
