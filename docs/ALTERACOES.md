@@ -73,7 +73,7 @@ shadowmap-ai/
 #### Moderação
 
 - Status `pending` / `approved` / `rejected` nos pontos
-- Painel admin em `/admin` com autenticação Basic (senha via `ADMIN_PASSWORD`)
+- Painel admin em `/admin` com autenticação por sessão (e-mail em `ADMIN_EMAILS`)
 - Aprovação, rejeição ou exclusão de pontos
 
 #### Rate Limiting
@@ -124,7 +124,7 @@ Criar arquivo `apps/web/.env` (copiar de `apps/web/.env.example`):
 ```env
 DATABASE_URL="postgresql://user:password@host:5432/shadowmap?schema=public"
 GOOGLE_AI_API_KEY="sua-chave-do-google-ai-studio"
-ADMIN_PASSWORD="sua-senha-admin"
+ADMIN_EMAILS="admin@exemplo.org"
 RATE_LIMIT_MAX_REQUESTS=30
 RATE_LIMIT_WINDOW_MS=60000
 ```
@@ -163,7 +163,7 @@ A aplicação ficará disponível em `http://localhost:3000`.
 ### 8. Acessar painel de admin
 
 - URL: `http://localhost:3000/admin`
-- Senha: valor de `ADMIN_PASSWORD` no `.env`
+- Acesso: conta autenticada cujo e-mail esteja em `ADMIN_EMAILS`
 
 ---
 
@@ -173,7 +173,7 @@ A aplicação ficará disponível em `http://localhost:3000`.
 |----------|-------------|-----------|
 | `DATABASE_URL` | Sim | URL de conexão com o Postgres (Neon/Supabase) |
 | `GOOGLE_AI_API_KEY` | Não | Chave da API do Google AI Studio (Gemini 1.5 Flash) |
-| `ADMIN_PASSWORD` | Não | Senha para o painel de moderação (default: `shadowmap-admin`) |
+| `ADMIN_EMAILS` | Não | E-mails (separados por vírgula) autorizados a moderar; vazio = ninguém acessa |
 | `RATE_LIMIT_MAX_REQUESTS` | Não | Máximo de requisições por janela (default: `30`) |
 | `RATE_LIMIT_WINDOW_MS` | Não | Janela de tempo em ms (default: `60000`) |
 
@@ -198,9 +198,9 @@ A aplicação ficará disponível em `http://localhost:3000`.
 | `/api/priority` | GET | Não | Índice de prioridade climática |
 | `/api/species` | GET | Não | Recomenda espécies nativas |
 | `/api/assistant` | POST | Não | Chat com assistente comunitário |
-| `/api/admin` | GET | Basic Auth | Lista todos os pontos |
-| `/api/admin` | PATCH | Basic Auth | Atualiza status de moderação |
-| `/api/admin` | DELETE | Basic Auth | Exclui ponto |
+| `/api/admin` | GET | Sessão + `ADMIN_EMAILS` | Lista todos os pontos |
+| `/api/admin` | PATCH | Sessão + `ADMIN_EMAILS` | Atualiza status de moderação |
+| `/api/admin` | DELETE | Sessão + `ADMIN_EMAILS` | Exclui ponto |
 
 ---
 

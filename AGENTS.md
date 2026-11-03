@@ -48,7 +48,7 @@ pnpm build                  # Build Next.js app
 - All API routes use Next.js App Router format
 - Rate limiting is applied per IP (configurable via env vars)
 - Points require moderation (status: pending/approved/rejected)
-- Admin routes require Basic auth with ADMIN_PASSWORD env var
+- Admin routes require an authenticated session whose e-mail is listed in `ADMIN_EMAILS`
 
 ## Environment Variables
 

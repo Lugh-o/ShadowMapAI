@@ -1,35 +1,33 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+
+import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/db";
-import type { ModerationStatus } from "@shadowmap/types";
 
-function verifyAdmin(request: Request): boolean {
-  const authHeader = request.headers.get("authorization");
-  const password = process.env.ADMIN_PASSWORD || "shadowmap-admin";
+const moderationStatusSchema = z.enum(["pending", "approved", "rejected"]);
 
-  if (!authHeader || !authHeader.startsWith("Basic ")) {
-    return false;
-  }
-
-  const token = authHeader.slice(6);
-  const decoded = atob(token);
-  return decoded === password;
-}
+const patchSchema = z.object({
+  id: z.string().min(1),
+  status: moderationStatusSchema,
+});
 
 export async function GET(request: Request) {
-  if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const admin = await requireAdmin();
+  if (!admin.ok) return admin.response;
 
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status") as ModerationStatus | null;
+  const statusParam = searchParams.get("status");
 
-  const where: Record<string, unknown> = {};
-  if (status) {
-    where.moderationStatus = status;
+  if (statusParam !== null) {
+    const parsedStatus = moderationStatusSchema.safeParse(statusParam);
+
+    if (!parsedStatus.success) {
+      return NextResponse.json({ error: "Status inválido." }, { status: 400 });
+    }
   }
 
   const points = await prisma.pointFeature.findMany({
-    where,
+    where: statusParam ? { moderationStatus: statusParam } : {},
     orderBy: { createdAt: "desc" },
   });
 
@@ -37,48 +35,70 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const admin = await requireAdmin();
+  if (!admin.ok) return admin.response;
 
-  let body: { id: string; status: ModerationStatus };
+  let payload: unknown;
+
   try {
-    body = await request.json();
+    payload = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
-  if (!body.id || !body.status) {
-    return NextResponse.json({ error: "Id and status required" }, { status: 400 });
+  const parsed = patchSchema.safeParse(payload);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Id e status válidos são obrigatórios." },
+      { status: 400 },
+    );
   }
 
-  if (!["approved", "rejected", "pending"].includes(body.status)) {
-    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  const existing = await prisma.pointFeature.findUnique({
+    where: { id: parsed.data.id },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json(
+      { error: "Ponto não encontrado." },
+      { status: 404 },
+    );
   }
 
   const point = await prisma.pointFeature.update({
-    where: { id: body.id },
-    data: { moderationStatus: body.status },
+    where: { id: parsed.data.id },
+    data: { moderationStatus: parsed.data.status },
   });
 
   return NextResponse.json(point);
 }
 
 export async function DELETE(request: Request) {
-  if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const admin = await requireAdmin();
+  if (!admin.ok) return admin.response;
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 
   if (!id) {
-    return NextResponse.json({ error: "Id required" }, { status: 400 });
+    return NextResponse.json({ error: "Id obrigatório." }, { status: 400 });
   }
 
-  await prisma.pointFeature.delete({
+  const existing = await prisma.pointFeature.findUnique({
     where: { id },
+    select: { id: true },
   });
+
+  if (!existing) {
+    return NextResponse.json(
+      { error: "Ponto não encontrado." },
+      { status: 404 },
+    );
+  }
+
+  await prisma.pointFeature.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
 }
