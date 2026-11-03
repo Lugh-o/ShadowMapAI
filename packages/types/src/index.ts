@@ -71,6 +71,7 @@ export interface NativeSpecies {
   shadeProduction: "low" | "moderate" | "high";
   droughtTolerance: "low" | "moderate" | "high";
   description: string;
+  source: string;
 }
 
 export interface SpeciesMatch {

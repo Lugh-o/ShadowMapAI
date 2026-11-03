@@ -1,19 +1,8 @@
 import type { NativeSpecies } from "@shadowmap/types";
 
+// Revisão conservadora (T4). Espécies com `source` vazio ficam fora do prompt
+// do assistente até revisão humana. Ver docs/REVISAO_ESPECIES.md.
 export const nativeSpecies: NativeSpecies[] = [
-  {
-    id: "sp-001",
-    commonName: "Castanheira",
-    scientificName: "Bertholletia excelsa",
-    family: "Lecythidaceae",
-    climate: ["Salvador", "Camaçari", "Lauro de Freitas", "Simões Filho"],
-    soilType: ["argiloso", "franco"],
-    treeSize: "large",
-    shadeProduction: "high",
-    droughtTolerance: "moderate",
-    description:
-      "Árvore de grande porte, nativa da Mata Atlântica. Produz grande sombra e é essencial para a fauna local.",
-  },
   {
     id: "sp-002",
     commonName: "Ipê-amarelo",
@@ -26,6 +15,7 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "high",
     description:
       "Árvore ornamental com flores amarelas vibrantes. Tolerante à seca e ideal para calçadas.",
+    source: "",
   },
   {
     id: "sp-003",
@@ -39,6 +29,7 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "moderate",
     description:
       "Árvore emblemática do Brasil, símbolo da Mata Atlântica. Madeira valiosa e grande porte.",
+    source: "Flora e Funga do Brasil",
   },
   {
     id: "sp-004",
@@ -52,19 +43,7 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "high",
     description:
       "Árvore frutífera nativa, muito adaptada ao clima semiárido e litorâneo. Produz caju e castanha.",
-  },
-  {
-    id: "sp-005",
-    commonName: "Mangueira",
-    scientificName: "Rhizophora mangle",
-    family: "Rhizophoraceae",
-    climate: ["Salvador", "Camaçari"],
-    soilType: ["argiloso"],
-    treeSize: "medium",
-    shadeProduction: "low",
-    droughtTolerance: "low",
-    description:
-      "Árvore de manguezal, essencial para a proteção costeira e reprodução de peixes.",
+    source: "Flora e Funga do Brasil",
   },
   {
     id: "sp-006",
@@ -77,7 +56,8 @@ export const nativeSpecies: NativeSpecies[] = [
     shadeProduction: "moderate",
     droughtTolerance: "moderate",
     description:
-      "Árvore pioneerira, rápida crescimento. Ideal para reflorestamento e atração de aves.",
+      "Árvore pioneira, de rápido crescimento. Ideal para reflorestamento e atração de aves.",
+    source: "",
   },
   {
     id: "sp-007",
@@ -91,11 +71,12 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "moderate",
     description:
       "Árvore frutífera nativa, produz frutos comestíveis e sombra moderada.",
+    source: "Flora e Funga do Brasil",
   },
   {
     id: "sp-008",
     commonName: "Sibipiruna",
-    scientificName: "Caesalpinia echinata",
+    scientificName: "Cenostigma pluviosum",
     family: "Fabaceae",
     climate: ["Salvador", "Camaçari", "Lauro de Freitas"],
     soilType: ["franco", "arenoso"],
@@ -104,6 +85,7 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "high",
     description:
       "Árvore nativa com flores amarelas. Tolerante à seca e boa para áreas urbanas.",
+    source: "Flora e Funga do Brasil",
   },
   {
     id: "sp-009",
@@ -117,6 +99,7 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "moderate",
     description:
       "Árvore fixadora de nitrogênio, ideal para sombreamento e recuperação de solos.",
+    source: "Flora e Funga do Brasil",
   },
   {
     id: "sp-010",
@@ -130,6 +113,7 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "high",
     description:
       "Árvore nativa da restinga, muito resistente à seca e ao vento salgado.",
+    source: "Flora e Funga do Brasil",
   },
   {
     id: "sp-011",
@@ -143,6 +127,7 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "high",
     description:
       "Árvore de grande porte, madeira durável. Excelente para sombreamento em áreas urbanas.",
+    source: "Flora e Funga do Brasil",
   },
   {
     id: "sp-012",
@@ -156,6 +141,7 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "moderate",
     description:
       "Árvore ou arbusto com frutos comestíveis. Atraente para aves e polinizadores.",
+    source: "",
   },
   {
     id: "sp-013",
@@ -169,6 +155,7 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "high",
     description:
       "Árvore de grande porte, madeira muito resistente. Produz frutos comestíveis.",
+    source: "Flora e Funga do Brasil",
   },
   {
     id: "sp-014",
@@ -182,18 +169,6 @@ export const nativeSpecies: NativeSpecies[] = [
     droughtTolerance: "moderate",
     description:
       "Árvore com flores vermelhas vibrantes. Atraente para beija-flores e borboletas.",
-  },
-  {
-    id: "sp-015",
-    commonName: "Coco-da-baía",
-    scientificName: "Cocos nucifera",
-    family: "Arecaceae",
-    climate: ["Salvador", "Camaçari", "Lauro de Freitas"],
-    soilType: ["arenoso"],
-    treeSize: "large",
-    shadeProduction: "moderate",
-    droughtTolerance: "high",
-    description:
-      "Palmeira icônica do litoral baiano. Resistente ao vento e à salinidade.",
+    source: "Flora e Funga do Brasil",
   },
 ];

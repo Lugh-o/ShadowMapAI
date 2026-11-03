@@ -1,113 +1,303 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { checkRateLimit, consumeGlobalDailyQuota, getClientIp } from "@/lib/rate-limit";
+import type { Prisma } from "@prisma/client";
+import { z } from "zod";
+
 import { auth } from "@/auth";
-import type { AssistantMessage } from "@shadowmap/types";
+import { prisma } from "@/lib/db";
+import { loadAssistantContext } from "@/lib/assistant/context";
+import {
+  AssistantUnavailableError,
+  generateAssistantReply,
+  type GeminiHistoryMessage,
+} from "@/lib/assistant/gemini";
+import { consumeAssistantQuota } from "@/lib/assistant/quota";
+import { buildSystemPrompt } from "@/lib/assistant/system-prompt";
 
-const SYSTEM_PROMPT = `Você é o assistente comunitário do ShadowMap AI, uma plataforma de mapeamento de ilhas de calor urbanas em Salvador e região metropolitana.
+const bodySchema = z.object({
+  conversationId: z.string().min(1).optional(),
+  message: z.string().trim().min(1).max(800),
+  consent: z.literal(true).optional(),
+  ref: z
+    .string()
+    .trim()
+    .max(64)
+    .regex(/^[a-z0-9_-]+$/i)
+    .optional(),
+});
 
-Suas responsabilidades:
-- Ajudar cidadãos a cadastrar pontos de calor excessivo e baixa arborização
-- Explicar o que são ilhas de calor urbanas e seus impactos na saúde
-- Recomendar espécies nativas para plantio
-- Orientar sobre como participar do projeto
-- Responder perguntas sobre o meio ambiente urbano em Salvador
+interface StoredMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+}
 
-Diretrizes:
-- Responda em português brasileiro
-- Seja acessível e use linguagem simples
-- Foque em espécies nativas da Bahia e Mata Atlântica
-- Não dê diagnósticos médicos - encaminhe para profissionais de saúde
-- Para dados técnicos precisos, sugira consultar fontes oficiais (INMET, IBGE)
-- Seja breve e direto nas respostas
+function parseStoredMessages(value: unknown): StoredMessage[] {
+  if (!Array.isArray(value)) return [];
 
-Espécies recomendadas para Salvador:
-- Castanheira (Bertholletia excelsa) - grande sombra
-- Ipê-amarelo (Handroanthus albus) - tolerante à seca
-- Pau-brasil (Paubrasilia echinata) - símbolo nacional
-- Cajueiro (Anacardium occidentale) - fruto comestível
-- Imbaúba (Cecropia peltata) - crescimento rápido
-- Ingá (Inga edulis) - fixa nitrogênio no solo
-- Jatobá (Hymenaea courbaril) - madeira resistente
+  const messages: StoredMessage[] = [];
 
-Como cadastrar um ponto:
-1. Clique no mapa para selecionar a localização
-2. Preencha o formulário com os dados do local
-3. Descreva a situação observada
-4. Envie para análise da equipe
+  for (const item of value) {
+    if (
+      typeof item === "object" &&
+      item !== null &&
+      "role" in item &&
+      "content" in item &&
+      (item.role === "user" || item.role === "assistant") &&
+      typeof item.content === "string"
+    ) {
+      messages.push({
+        id: "id" in item && typeof item.id === "string" ? item.id : "",
+        role: item.role,
+        content: item.content,
+        createdAt:
+          "createdAt" in item && typeof item.createdAt === "string"
+            ? item.createdAt
+            : "",
+      });
+    }
+  }
 
-Obrigado por participar do ShadowMap AI!`;
+  return messages;
+}
 
 export async function POST(request: Request) {
   const session = await auth();
+
   if (!session?.user?.id) {
     return NextResponse.json(
-      { error: "Login required", message: "Faça login para usar o assistente" },
-      { status: 401 }
+      { error: "Faça login para usar o assistente." },
+      { status: 401 },
     );
   }
 
-  const ip = getClientIp(request);
-  const { allowed } = checkRateLimit(ip);
-  if (!allowed) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
-  }
+  let payload: unknown;
 
-  const { allowed: dailyAllowed, remaining } = await consumeGlobalDailyQuota();
-  if (!dailyAllowed) {
-    return NextResponse.json(
-      { error: "Daily limit reached", message: "Limite diário de 1500 mensagens atingido" },
-      { status: 429 }
-    );
-  }
-
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "Assistant not configured" },
-      { status: 503 }
-    );
-  }
-
-  let body: { messages: AssistantMessage[] };
   try {
-    body = await request.json();
+    payload = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
-  if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
-    return NextResponse.json({ error: "Messages array required" }, { status: 400 });
-  }
+  const parsed = bodySchema.safeParse(payload);
 
-  const lastMessage = body.messages[body.messages.length - 1];
-  if (lastMessage.role !== "user") {
-    return NextResponse.json({ error: "Last message must be from user" }, { status: 400 });
-  }
-
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction: SYSTEM_PROMPT,
-    });
-
-    const chat = model.startChat({
-      history: body.messages.slice(0, -1).map((msg) => ({
-        role: msg.role === "assistant" ? "model" : "user",
-        parts: [{ text: msg.content }],
-      })),
-    });
-
-    const result = await chat.sendMessage(lastMessage.content);
-    const response = result.response.text();
-
-    return NextResponse.json({ content: response });
-  } catch (error) {
-    console.error("Assistant error:", error);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Failed to get response from assistant" },
-      { status: 500 }
+      {
+        error:
+          "Mensagem inválida. Use entre 1 e 800 caracteres e não envie histórico.",
+      },
+      { status: 400 },
     );
   }
+
+  const data = parsed.data;
+  const userId = session.user.id;
+
+  const user = await prisma.user
+    .findUnique({
+      where: { id: userId },
+      select: { assistantConsentAt: true },
+    })
+    .catch(() => null);
+
+  if (!user) {
+    return NextResponse.json(
+      {
+        code: "ASSISTANT_UNAVAILABLE",
+        error: "O assistente está indisponível no momento.",
+      },
+      { status: 503 },
+    );
+  }
+
+  if (!user.assistantConsentAt && data.consent !== true) {
+    return NextResponse.json(
+      {
+        code: "CONSENT_REQUIRED",
+        error:
+          "É necessário concordar com o aviso do assistente antes de continuar.",
+      },
+      { status: 403 },
+    );
+  }
+
+  if (data.consent === true && !user.assistantConsentAt) {
+    const consentSaved = await prisma.user
+      .update({
+        where: { id: userId },
+        data: { assistantConsentAt: new Date() },
+      })
+      .then(() => true)
+      .catch(() => false);
+
+    if (!consentSaved) {
+      return NextResponse.json(
+        {
+          code: "ASSISTANT_UNAVAILABLE",
+          error: "O assistente está indisponível no momento.",
+        },
+        { status: 503 },
+      );
+    }
+  }
+
+  let conversation = null;
+
+  if (data.conversationId) {
+    conversation = await prisma.assistantConversation
+      .findFirst({
+        where: { id: data.conversationId, userId },
+      })
+      .catch(() => null);
+
+    if (!conversation) {
+      return NextResponse.json(
+        { error: "Conversa não encontrada." },
+        { status: 404 },
+      );
+    }
+  }
+
+  const quota = await consumeAssistantQuota(userId);
+
+  if (!quota.ok) {
+    if (quota.reason === "UNAVAILABLE") {
+      return NextResponse.json(
+        {
+          code: "ASSISTANT_UNAVAILABLE",
+          error: "O assistente está indisponível no momento.",
+        },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        code: quota.reason,
+        error:
+          quota.reason === "USER_LIMIT"
+            ? "Você atingiu o limite diário de mensagens."
+            : "O limite diário do assistente foi atingido.",
+      },
+      { status: 429 },
+    );
+  }
+
+  let context;
+
+  try {
+    context = await loadAssistantContext();
+  } catch (error) {
+    console.error(
+      "Falha ao carregar contexto do assistente:",
+      error instanceof Error ? error.name : "erro desconhecido",
+    );
+
+    return NextResponse.json(
+      {
+        code: "ASSISTANT_UNAVAILABLE",
+        error: "O assistente está indisponível no momento.",
+      },
+      { status: 503 },
+    );
+  }
+
+  const storedMessages = conversation
+    ? parseStoredMessages(conversation.messages)
+    : [];
+
+  const history: GeminiHistoryMessage[] = storedMessages
+    .slice(-12)
+    .map((message) => ({
+      role: message.role === "assistant" ? "model" : "user",
+      parts: [{ text: message.content }],
+    }));
+
+  let content: string;
+
+  try {
+    content = await generateAssistantReply({
+      systemPrompt: buildSystemPrompt(context),
+      history,
+      message: data.message,
+    });
+  } catch (error) {
+    if (!(error instanceof AssistantUnavailableError)) {
+      console.error(
+        "Erro inesperado no assistente:",
+        error instanceof Error ? error.name : "erro desconhecido",
+      );
+    }
+
+    return NextResponse.json(
+      {
+        code: "ASSISTANT_UNAVAILABLE",
+        error: "O assistente está indisponível no momento.",
+      },
+      { status: 503 },
+    );
+  }
+
+  const now = new Date().toISOString();
+  const userMessage: StoredMessage = {
+    id: crypto.randomUUID(),
+    role: "user",
+    content: data.message,
+    createdAt: now,
+  };
+  const assistantMessage: StoredMessage = {
+    id: crypto.randomUUID(),
+    role: "assistant",
+    content,
+    createdAt: now,
+  };
+  const messages = [...storedMessages, userMessage, assistantMessage];
+
+  let conversationId: string;
+
+  try {
+    if (conversation) {
+      await prisma.assistantConversation.update({
+        where: { id: conversation.id },
+        data: {
+          messages: messages as unknown as Prisma.InputJsonValue,
+          ref: data.ref ?? conversation.ref,
+        },
+      });
+
+      conversationId = conversation.id;
+    } else {
+      const created = await prisma.assistantConversation.create({
+        data: {
+          sessionId: crypto.randomUUID(),
+          userId,
+          ref: data.ref ?? null,
+          messages: messages as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      conversationId = created.id;
+    }
+  } catch (error) {
+    console.error(
+      "Falha ao salvar conversa do assistente:",
+      error instanceof Error ? error.name : "erro desconhecido",
+    );
+
+    return NextResponse.json(
+      {
+        code: "ASSISTANT_UNAVAILABLE",
+        error: "O assistente está indisponível no momento.",
+      },
+      { status: 503 },
+    );
+  }
+
+  return NextResponse.json({
+    conversationId,
+    messageId: assistantMessage.id,
+    content,
+    quota: { userRemaining: quota.userRemaining },
+  });
 }

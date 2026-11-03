@@ -104,6 +104,7 @@ model AssistantConversation {
   id        String   @id @default(cuid())
   sessionId String
   userId    String?
+  ref       String?
   messages  Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -112,17 +113,28 @@ model AssistantConversation {
   @@index([userId])
 }
 
+model AssistantUserUsage {
+  id     String   @id @default(cuid())
+  userId String
+  date   DateTime @db.Date
+  count  Int      @default(0)
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  accounts      Account[]
-  sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String    @unique
+  emailVerified      DateTime?
+  image              String?
+  password           String?
+  assistantConsentAt DateTime?
+  accounts           Account[]
+  sessions           Session[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
 
 model Account {

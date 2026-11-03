@@ -1,5 +1,4 @@
 import type { RateLimitEntry } from "@shadowmap/types";
-import { prisma } from "@/lib/db";
 
 const rateLimitMap = new Map<string, RateLimitEntry>();
 
@@ -32,41 +31,4 @@ export function getClientIp(request: Request): string {
     return forwarded.split(",")[0].trim();
   }
   return "unknown";
-}
-
-const DAILY_LIMIT = parseInt(process.env.ASSISTANT_DAILY_LIMIT || "1500", 10);
-
-export async function consumeGlobalDailyQuota(): Promise<{ allowed: boolean; remaining: number }> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  try {
-    const result = await prisma.$transaction(async (tx) => {
-      // Upsert the row for today
-      const upserted = await tx.geminiDailyUsage.upsert({
-        where: { date: today },
-        update: {},
-        create: { date: today, count: 0 },
-      });
-
-      // Check if we're at or above the limit
-      if (upserted.count >= DAILY_LIMIT) {
-        return { allowed: false, remaining: 0 };
-      }
-
-      // Increment the count
-      const updated = await tx.geminiDailyUsage.update({
-        where: { id: upserted.id },
-        data: { count: upserted.count + 1 },
-      });
-
-      return { allowed: true, remaining: DAILY_LIMIT - updated.count };
-    });
-
-    return result;
-  } catch (error) {
-    console.error("Failed to consume global daily quota:", error);
-    // On error, allow the request but log the issue
-    return { allowed: true, remaining: DAILY_LIMIT };
-  }
 }
