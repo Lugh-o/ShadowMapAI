@@ -2,6 +2,7 @@
   "name": "shadowmap-ai",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.25.0",
   "scripts": {
     "dev": "pnpm --filter @shadowmap/web dev",
     "build": "pnpm --filter @shadowmap/web build",
