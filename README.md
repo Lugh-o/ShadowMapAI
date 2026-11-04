@@ -12,8 +12,8 @@ planejadas ficam explicitamente marcadas como tal.
 
 | Status | O que é |
 |---|---|
-| **Implementado** | Mapa interativo com filtros, cadastro de pontos com moderação, autenticação (e-mail/senha e Google), painel de moderação, rate limit básico |
-| **Em desenvolvimento (MVP)** | Separação entre dados coletados e simulados, validação geográfica e anti-duplicidade, assistente de IA (Gemini) com consentimento e cotas, rascunho de ponto por linguagem natural, dashboard público, instrumentação do piloto (`ref`, feedback), página de privacidade |
+| **Implementado** | Mapa interativo com filtros, cadastro de pontos com moderação, autenticação (e-mail/senha e Google), painel de moderação, separação entre dados coletados e simulados, validação geográfica e anti-duplicidade, assistente de IA (Gemini) com consentimento e cotas, rascunho de ponto por linguagem natural, dashboard público, instrumentação do piloto (`ref`, feedback), exportação CSV, página de privacidade |
+| **Pré-requisito da demo** | `GOOGLE_AI_API_KEY` e `GEMINI_MODEL` válidos no `.env` (confirme com `check:gemini`); `ADMIN_EMAILS` com o e-mail da conta que vai moderar |
 | **Planejado (trabalho futuro)** | Classificação de cobertura vegetal por satélite/NDVI, índice com temperatura de superfície, recomendação de espécies por aprendizado de máquina, PWA/modo offline, upload de fotos, notificações |
 
 > **Importante:** não há classificação por satélite nem NDVI implementados. A

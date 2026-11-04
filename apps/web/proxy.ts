@@ -1,5 +1,10 @@
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
+
+import authConfig from "@/auth.config";
+
+// Instância leve para o proxy: valida o JWT sem carregar Prisma/bcrypt.
+const { auth } = NextAuth(authConfig);
 
 const PUBLIC_PATHS = new Set([
   "/",
