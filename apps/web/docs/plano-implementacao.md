@@ -1,4 +1,6 @@
-> ⚠️ **Documento histórico — substituído por `docs/SPEC_MVP_SHADOWMAP_AI.md`.**
+> ⚠️ **Documento histórico. Não descreve a versão estática atual (sem login, banco, API real nem IA).**
+>
+> Substituído por `docs/SPEC_MVP_SHADOWMAP_AI.md`.
 > O escopo, as decisões e o status atual do MVP estão na spec. Este arquivo é
 > mantido apenas como registro da Fase 1.
 

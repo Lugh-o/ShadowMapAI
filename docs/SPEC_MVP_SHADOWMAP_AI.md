@@ -1,3 +1,5 @@
+> ⚠️ **Documento histórico. Não descreve a versão estática atual (sem login, banco, API real nem IA).**
+
 # SPEC — MVP ShadowMap AI (assistente de IA + dashboard)
 
 > **Destinatário:** agente de IA que vai implementar o código neste repositório (monorepo pnpm: `apps/web`, `packages/{db,types,species-data}`).

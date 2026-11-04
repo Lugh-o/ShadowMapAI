@@ -53,12 +53,32 @@ pnpm dev
 
 Acesse `http://localhost:3000`.
 
-Para gerar a versão de produção:
+Para gerar a versão estática em `apps/web/out`:
 
 ```bash
 pnpm build
-pnpm start
 ```
+
+Para visualizar o resultado estático localmente:
+
+```bash
+pnpm preview
+```
+
+## Publicação
+
+O site é publicado automaticamente no GitHub Pages pelo workflow
+`.github/workflows/deploy-pages.yml` a cada push na branch `main` (ou por
+execução manual em **Actions → Deploy GitHub Pages → Run workflow**).
+
+- URL final: `https://eubrunocase.github.io/ShadowMapAI/`
+- Em GitHub Pages de projeto, os assets ficam sob `/ShadowMapAI/`, por isso o
+  build define `NEXT_PUBLIC_BASE_PATH=/ShadowMapAI`.
+- Localmente e em outros hosts (Cloudflare, Netlify, domínio próprio), deixe
+  `NEXT_PUBLIC_BASE_PATH` vazio.
+
+O repositório precisa ter **Settings → Pages → Build and deployment → Source**
+configurado como **GitHub Actions**.
 
 ## Estrutura relevante
 
@@ -67,8 +87,7 @@ apps/web/
 ├── app/
 │   ├── page.tsx                 # mapa demonstrativo
 │   ├── dashboard/page.tsx       # painel com dados simulados
-│   ├── privacidade/page.tsx     # explica a demonstração
-│   └── api/points/route.ts      # GET simulado e POST sem persistência
+│   └── privacidade/page.tsx     # explica a demonstração
 ├── components/                  # mapa, filtros, formulário, painéis e chat
 │   └── SimulatedChat.tsx        # assistente fictício com respostas prontas
 ├── lib/chatbot/knowledge.ts     # base de respostas e busca por palavras-chave
@@ -81,8 +100,9 @@ apps/web/
 ## Variáveis de ambiente
 
 A demonstração não exige variáveis obrigatórias. Veja
-`apps/web/.env.example`. O mapa funciona sem chave; o banco e as integrações
-antigas são opcionais e não são usados por esta versão.
+`apps/web/.env.example`. O mapa funciona sem chave. A única variável relevante
+para publicação é `NEXT_PUBLIC_BASE_PATH`, vazia localmente e definida como
+`/ShadowMapAI` no workflow do GitHub Pages.
 
 ## Licença
 
