@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter @shadowmap/web dev",
     "build": "pnpm --filter @shadowmap/web build",
-    "start": "pnpm --filter @shadowmap/web start",
+    "preview": "pnpm --filter @shadowmap/web build && npx serve apps/web/out",
     "lint": "pnpm --filter @shadowmap/web lint"
   }
 }
