@@ -9,6 +9,7 @@ import { loadAssistantContext } from "@/lib/assistant/context";
 import {
   AssistantUnavailableError,
   generateAssistantReply,
+  isAssistantConfigured,
   type GeminiHistoryMessage,
 } from "@/lib/assistant/gemini";
 import { consumeAssistantQuota } from "@/lib/assistant/quota";
@@ -95,6 +96,17 @@ export async function POST(request: Request) {
   const data = parsed.data;
   const userId = session.user.id;
   const pilotRef = normalizePilotRef(data.ref);
+
+  // Falha clara antes de consumir cota quando a integração não está configurada.
+  if (!isAssistantConfigured()) {
+    return NextResponse.json(
+      {
+        code: "ASSISTANT_UNAVAILABLE",
+        error: "O assistente está indisponível no momento.",
+      },
+      { status: 503 },
+    );
+  }
 
   const user = await prisma.user
     .findUnique({

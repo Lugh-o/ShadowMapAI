@@ -11,6 +11,7 @@ import {
 import {
   AssistantUnavailableError,
   generateStructuredJson,
+  isAssistantConfigured,
 } from "@/lib/assistant/gemini";
 import { consumeAssistantQuota } from "@/lib/assistant/quota";
 
@@ -55,6 +56,17 @@ export async function POST(request: Request) {
           "Relato inválido. Use entre 10 e 600 caracteres e informe cidade/bairro válidos, se houver.",
       },
       { status: 400 },
+    );
+  }
+
+  if (!isAssistantConfigured()) {
+    return NextResponse.json(
+      {
+        code: "ASSISTANT_UNAVAILABLE",
+        error:
+          "Não consegui sugerir agora. Você pode preencher o formulário manualmente.",
+      },
+      { status: 503 },
     );
   }
 

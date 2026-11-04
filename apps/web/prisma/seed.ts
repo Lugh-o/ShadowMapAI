@@ -215,17 +215,6 @@ const heatZonesData = [
 
 const nativeSpeciesData = [
   {
-    commonName: "Castanheira",
-    scientificName: "Bertholletia excelsa",
-    family: "Lecythidaceae",
-    climate: JSON.stringify(["Salvador", "Camaçari", "Lauro de Freitas", "Simões Filho"]),
-    soilType: JSON.stringify(["argiloso", "franco"]),
-    treeSize: "large",
-    shadeProduction: "high",
-    droughtTolerance: "moderate",
-    description: "Árvore de grande porte, nativa da Mata Atlântica. Produz grande sombra e é essencial para a fauna local.",
-  },
-  {
     commonName: "Ipê-amarelo",
     scientificName: "Handroanthus albus",
     family: "Bignoniaceae",
@@ -267,7 +256,7 @@ const nativeSpeciesData = [
     treeSize: "medium",
     shadeProduction: "moderate",
     droughtTolerance: "moderate",
-    description: "Árvore pioneerira, rápida crescimento. Ideal para reflorestamento e atração de aves.",
+    description: "Árvore pioneira, de rápido crescimento. Ideal para reflorestamento e atração de aves.",
   },
 ];
 

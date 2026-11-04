@@ -15,11 +15,11 @@ interface GeminiModel {
 }
 
 async function main() {
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  const apiKey = process.env.GOOGLE_AI_API_KEY?.trim();
 
-  if (!apiKey) {
+  if (!apiKey || apiKey.length < 20) {
     console.error(
-      "GOOGLE_AI_API_KEY não definida. Configure apps/web/.env antes de rodar.",
+      "GOOGLE_AI_API_KEY não definida ou com valor de exemplo. Configure uma chave real em apps/web/.env antes de rodar.",
     );
     process.exitCode = 1;
     return;

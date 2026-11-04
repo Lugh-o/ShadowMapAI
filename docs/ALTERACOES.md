@@ -1,5 +1,9 @@
 # ShadowMap AI — Alterações e Configuração
 
+> ⚠️ **Documento histórico.** O estado atual do MVP, as rotas e as variáveis de
+> ambiente estão em `docs/SPEC_MVP_SHADOWMAP_AI.md` e no `README.md`. Tabelas
+> abaixo podem citar rotas já removidas (ex.: `/api/priority`).
+
 ## Alterações Realizadas
 
 ### Estrutura de Monorepo

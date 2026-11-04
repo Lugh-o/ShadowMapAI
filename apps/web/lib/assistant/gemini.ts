@@ -2,8 +2,16 @@ import { GoogleGenerativeAI, type ResponseSchema } from "@google/generative-ai";
 
 const TIMEOUT_MS = 20_000;
 const FALLBACK_REPLY = "Não consegui responder a isso. Tente reformular.";
+const MIN_API_KEY_LENGTH = 20;
 
 export const ASSISTANT_FALLBACK_REPLY = FALLBACK_REPLY;
+
+export function isAssistantConfigured(): boolean {
+  const apiKey = process.env.GOOGLE_AI_API_KEY?.trim() ?? "";
+  const modelName = process.env.GEMINI_MODEL?.trim() ?? "";
+
+  return apiKey.length >= MIN_API_KEY_LENGTH && modelName.length > 0;
+}
 
 export class AssistantUnavailableError extends Error {
   constructor() {
@@ -83,10 +91,10 @@ async function sendOnce(
 export async function generateAssistantReply(
   params: GenerateReplyParams,
 ): Promise<string> {
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
-  const modelName = process.env.GEMINI_MODEL;
+  const apiKey = process.env.GOOGLE_AI_API_KEY?.trim();
+  const modelName = process.env.GEMINI_MODEL?.trim();
 
-  if (!apiKey || !modelName) {
+  if (!isAssistantConfigured() || !apiKey || !modelName) {
     console.error(
       "Assistente indisponível: GOOGLE_AI_API_KEY ou GEMINI_MODEL não configurado.",
     );
@@ -141,10 +149,10 @@ async function sendJsonOnce(
 export async function generateStructuredJson(
   params: GenerateJsonParams,
 ): Promise<unknown> {
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
-  const modelName = process.env.GEMINI_MODEL;
+  const apiKey = process.env.GOOGLE_AI_API_KEY?.trim();
+  const modelName = process.env.GEMINI_MODEL?.trim();
 
-  if (!apiKey || !modelName) {
+  if (!isAssistantConfigured() || !apiKey || !modelName) {
     console.error(
       "Assistente indisponível: GOOGLE_AI_API_KEY ou GEMINI_MODEL não configurado.",
     );
