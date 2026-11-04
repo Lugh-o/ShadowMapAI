@@ -45,20 +45,21 @@ export default function Sidebar({
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-              Painel operacional
+              Painel demonstrativo
             </p>
             <h2 className="mt-1 font-display text-2xl font-semibold text-emerald-950">
-              Monitoramento ativo
+              Amostra de dados
             </h2>
           </div>
           <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-900">
-            {totalPoints} registros
+            {totalPoints} simulados
           </span>
         </div>
 
         <p className="mt-3 text-sm leading-6 text-emerald-950/72">
-          Use o mapa para explorar zonas de calor, selecionar ocorrências e
-          registrar novos pontos de desconforto térmico urbano.
+          Use o mapa para explorar zonas de calor, selecionar pontos e simular o
+          cadastro de uma nova ocorrência. Os dados são ilustrativos e nada é
+          salvo.
         </p>
       </section>
 
@@ -125,7 +126,7 @@ export default function Sidebar({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-              Cadastro rápido
+              Cadastro simulado
             </p>
             <h3 className="mt-1 font-display text-xl font-semibold text-emerald-950">
               Novo ponto
@@ -143,6 +144,11 @@ export default function Sidebar({
             </button>
           )}
         </div>
+
+        <p className="mt-3 rounded-[18px] border border-amber-300 bg-amber-50 px-4 py-2 text-xs leading-5 text-amber-950">
+          Cadastro de demonstração: o ponto aparece apenas nesta sessão do
+          navegador e não é enviado para nenhum servidor.
+        </p>
 
         {draftLocation ? (
           <p className="mt-3 rounded-[20px] bg-amber-50 px-4 py-3 text-sm text-amber-950/82">
@@ -163,8 +169,9 @@ export default function Sidebar({
             />
           ) : (
             <div className="rounded-[20px] bg-white/75 px-4 py-4 text-sm leading-6 text-emerald-950/72">
-              Clique em <strong>Adicionar ponto</strong> ou selecione qualquer
-              local no mapa para preencher latitude e longitude automaticamente.
+              Clique em <strong>Simular novo ponto</strong> ou selecione
+              qualquer local no mapa para preencher latitude e longitude
+              automaticamente.
             </div>
           )}
         </div>

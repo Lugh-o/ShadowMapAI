@@ -40,7 +40,6 @@ export default function MapView({
         center={DEFAULT_MAP_CENTER}
         zoom={DEFAULT_MAP_ZOOM}
         zoomControl={false}
-        attributionControl={false}
         doubleClickZoom
         dragging
         scrollWheelZoom
@@ -48,8 +47,8 @@ export default function MapView({
         className="h-full w-full"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
         <ZoomControl position="topright" />

@@ -4,15 +4,12 @@ import Link from "next/link";
 import DailyChart from "@/components/dashboard/DailyChart";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import DistributionBars from "@/components/dashboard/DistributionBars";
-import PilotPanel from "@/components/dashboard/PilotPanel";
 import RankingTable from "@/components/dashboard/RankingTable";
-import { auth } from "@/auth";
 import {
   getDashboardData,
   parseDashboardParams,
   type RecentPoint,
 } from "@/lib/dashboard";
-import { getPilotData } from "@/lib/pilot";
 import { getIssueTypeLabel, getPriorityLabel } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +17,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Painel | ShadowMap",
   description:
-    "Relatos aprovados de calor urbano e arborização na Região Metropolitana de Salvador.",
+    "Agregados simulados de calor urbano e arborização em Salvador.",
 };
 
 interface DashboardPageProps {
@@ -46,16 +43,7 @@ export default async function DashboardPage({
     days: firstParam(resolvedSearchParams.days),
   });
 
-  const session = await auth();
-  const email = session?.user?.email?.trim().toLowerCase() ?? "";
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-  const isAdmin = Boolean(email) && adminEmails.includes(email);
-
-  const data = await getDashboardData({ ...filters, includePending: isAdmin });
-  const pilotData = isAdmin ? await getPilotData() : null;
+  const data = await getDashboardData(filters);
 
   const hasNoCollected = filters.origin === "collected" && data.collectedCount === 0;
   const hasNoFilteredData = data.totals.approved === 0;
@@ -67,14 +55,14 @@ export default async function DashboardPage({
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="max-w-3xl">
               <span className="inline-flex items-center rounded-full bg-emerald-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-50">
-                Painel público
+                Painel demonstrativo
               </span>
               <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight text-emerald-950 md:text-4xl">
-                Calor urbano e arborização em números
+                Calor urbano em números simulados
               </h1>
               <p className="mt-2 text-sm leading-6 text-emerald-950/72 md:text-base">
-                Agregados dos relatos aprovados pela equipe do ShadowMap AI,
-                projeto de extensão da UCSAL na Região Metropolitana de Salvador.
+                Agregados dos pontos simulados usados na amostra visual do
+                ShadowMap AI em Salvador. Nenhum dado foi coletado de moradores.
               </p>
             </div>
 
@@ -87,55 +75,40 @@ export default async function DashboardPage({
           </div>
 
           <p className="mt-4 rounded-[20px] border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
-            Estes números vêm de relatos enviados pelos usuários e aprovados
-            pela equipe. Não são medições de temperatura.
+            <strong>Todos os números desta página são simulados.</strong> Eles
+            servem apenas para demonstrar a interface e não representam medições
+            de temperatura nem relatos reais.
           </p>
         </header>
 
         <DashboardFilters filters={filters} />
 
-        {isAdmin && pilotData ? <PilotPanel data={pilotData} /> : null}
-
         {hasNoCollected ? (
           <EmptyState
-            title="Ainda não há relatos coletados."
-            description="Quando os primeiros relatos forem aprovados, este painel mostrará os agregados por bairro, tipo de ocorrência e período."
+            title="Nenhum ponto simulado com este filtro."
+            description="Ajuste a origem, a cidade ou o período para ver os dados de demonstração."
           />
         ) : hasNoFilteredData ? (
           <EmptyState
-            title="Nenhum relato aprovado com os filtros atuais."
+            title="Nenhum ponto simulado com os filtros atuais."
             description="Ajuste a origem, a cidade ou o período para ver outros resultados."
           />
         ) : (
           <>
-            {filters.origin === "all" && data.collectedCount === 0 ? (
-              <div className="rounded-[24px] border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
-                Ainda não há relatos coletados. Os números abaixo incluem dados
-                simulados, sempre identificados com o selo SIMULADO.
-              </div>
-            ) : null}
-
-            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <MetricCard label="Relatos aprovados" value={data.totals.approved} />
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard label="Pontos simulados" value={data.totals.approved} />
               <MetricCard
                 label="Críticos + altos"
                 value={data.totals.highCritical}
               />
               <MetricCard
-                label="Bairros com relatos"
+                label="Bairros representados"
                 value={data.totals.neighborhoods}
               />
               <MetricCard
-                label="Com apoio da IA"
-                value={`${data.totals.aiAssistedPercent}%`}
+                label="Pontos com selo simulado"
+                value={data.totals.approved}
               />
-              {isAdmin ? (
-                <MetricCard
-                  label="Pendentes de moderação"
-                  value={data.totals.pending ?? 0}
-                  hint="Visível apenas para admin"
-                />
-              ) : null}
             </section>
 
             <RankingTable ranking={data.ranking} />
@@ -217,16 +190,16 @@ function RecentReports({ points }: { points: RecentPoint[] }) {
     <section className="card-strong rounded-[24px] p-4 md:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h3 className="font-display text-lg font-semibold text-emerald-950">
-          Últimos 10 relatos
+          Últimos 10 pontos simulados
         </h3>
         <p className="text-xs text-emerald-950/55">
-          Aprovados, mais recentes primeiro
+          Simulados, mais recentes primeiro
         </p>
       </div>
 
       {points.length === 0 ? (
         <p className="mt-3 text-sm text-emerald-950/60">
-          Nenhum relato aprovado no período selecionado.
+          Nenhum ponto simulado no período selecionado.
         </p>
       ) : (
         <ul className="mt-3 divide-y divide-emerald-950/10">

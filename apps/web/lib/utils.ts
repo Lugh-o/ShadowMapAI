@@ -45,8 +45,8 @@ export const SHADE_LEVEL_OPTIONS: ShadeLevel[] = [
   "good",
 ];
 
-export const DEFAULT_MAP_CENTER: [number, number] = [-12.86, -38.42];
-export const DEFAULT_MAP_ZOOM = 10;
+export const DEFAULT_MAP_CENTER: [number, number] = [-12.9718, -38.5011];
+export const DEFAULT_MAP_ZOOM = 12;
 
 const ISSUE_TYPE_LABELS: Record<IssueType, string> = {
   heat_island: "Ilha de calor",

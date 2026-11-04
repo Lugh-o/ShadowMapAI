@@ -24,75 +24,39 @@
     "intensity": "extreme"
   },
   {
-    "id": "hz-cam-1",
-    "city": "Camaçari",
-    "name": "Eixo Central de Camaçari",
+    "id": "hz-ssa-3",
+    "city": "Salvador",
+    "name": "Centro Histórico",
     "coordinates": [
-      [-12.7107, -38.3435],
-      [-12.7096, -38.3118],
-      [-12.6922, -38.3133],
-      [-12.6931, -38.3467]
+      [-12.9782, -38.5192],
+      [-12.9768, -38.5038],
+      [-12.9652, -38.5052],
+      [-12.9668, -38.5208]
     ],
     "intensity": "high"
   },
   {
-    "id": "hz-cam-2",
-    "city": "Camaçari",
-    "name": "Abrantes Expandido",
+    "id": "hz-ssa-4",
+    "city": "Salvador",
+    "name": "Liberdade e arredores",
     "coordinates": [
-      [-12.8069, -38.3345],
-      [-12.8048, -38.2987],
-      [-12.7827, -38.3024],
-      [-12.7856, -38.3378]
+      [-12.9446, -38.5024],
+      [-12.9428, -38.4868],
+      [-12.9302, -38.4884],
+      [-12.9322, -38.5042]
     ],
     "intensity": "medium"
   },
   {
-    "id": "hz-lau-1",
-    "city": "Lauro de Freitas",
-    "name": "Anel de Itinga",
+    "id": "hz-ssa-5",
+    "city": "Salvador",
+    "name": "Subúrbio Ferroviário",
     "coordinates": [
-      [-12.9017, -38.3722],
-      [-12.9004, -38.3402],
-      [-12.8778, -38.3435],
-      [-12.8789, -38.375]
+      [-12.8848, -38.4766],
+      [-12.8826, -38.4592],
+      [-12.8684, -38.4628],
+      [-12.8706, -38.4808]
     ],
     "intensity": "high"
-  },
-  {
-    "id": "hz-lau-2",
-    "city": "Lauro de Freitas",
-    "name": "Centro e Terminal",
-    "coordinates": [
-      [-12.9021, -38.3341],
-      [-12.901, -38.3112],
-      [-12.8876, -38.3124],
-      [-12.8888, -38.3361]
-    ],
-    "intensity": "medium"
-  },
-  {
-    "id": "hz-sim-1",
-    "city": "Simões Filho",
-    "name": "CIA Industrial",
-    "coordinates": [
-      [-12.7949, -38.4277],
-      [-12.794, -38.393],
-      [-12.775, -38.3946],
-      [-12.7758, -38.4294]
-    ],
-    "intensity": "extreme"
-  },
-  {
-    "id": "hz-sim-2",
-    "city": "Simões Filho",
-    "name": "Centro Consolidado",
-    "coordinates": [
-      [-12.7906, -38.4122],
-      [-12.7898, -38.3903],
-      [-12.7782, -38.3914],
-      [-12.779, -38.414]
-    ],
-    "intensity": "medium"
   }
 ]

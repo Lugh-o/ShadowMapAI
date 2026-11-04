@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import pointsData from "@/data/points.json";
 import {
   CITY_OPTIONS,
   getHeatLevelLabel,
@@ -88,6 +88,37 @@ const PRIORITY_WEIGHTS: Record<Priority, number> = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+interface SimulatedPointRecord {
+  id: string;
+  city: City;
+  neighborhood: string;
+  issueType: IssueType;
+  heatLevel: HeatLevel;
+  shadeLevel: ShadeLevel;
+  priority: Priority;
+  dataOrigin: "simulated";
+  aiAssisted: boolean;
+  createdAt: Date;
+}
+
+// O painel usa exatamente os mesmos dados simulados do mapa, sem banco.
+const SIMULATED_POINTS: SimulatedPointRecord[] = (
+  pointsData as Array<{
+    id: string;
+    city: City;
+    neighborhood: string;
+    issueType: IssueType;
+    heatLevel: HeatLevel;
+    shadeLevel: ShadeLevel;
+    priority: Priority;
+  }>
+).map((point, index) => ({
+  ...point,
+  dataOrigin: "simulated",
+  aiAssisted: index % 3 === 0,
+  createdAt: new Date(Date.now() - index * 2 * DAY_MS),
+}));
+
 function normalizeText(value: string): string {
   return value
     .normalize("NFD")
@@ -107,7 +138,7 @@ export function parseDashboardParams(values: {
   days?: string | null;
 }): DashboardParams {
   const origin: DashboardOrigin =
-    values.origin === "all" ? "all" : "collected";
+    values.origin === "collected" ? "collected" : "all";
 
   const city = CITY_OPTIONS.includes(values.city as City)
     ? (values.city as City)
@@ -131,42 +162,14 @@ export async function getDashboardData(
 ): Promise<DashboardData> {
   const { origin, city, days, includePending = false } = input;
 
-  const cityFilter = city === "all" ? {} : { city };
-  const originFilter =
-    origin === "collected" ? { dataOrigin: "collected" } : {};
+  const points = SIMULATED_POINTS.filter(
+    (point) =>
+      origin === "all" && (city === "all" || point.city === city),
+  ).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-  const [points, collectedCount, pending] = await Promise.all([
-    prisma.pointFeature.findMany({
-      where: {
-        moderationStatus: "approved",
-        ...cityFilter,
-        ...originFilter,
-      },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        city: true,
-        neighborhood: true,
-        issueType: true,
-        heatLevel: true,
-        shadeLevel: true,
-        priority: true,
-        dataOrigin: true,
-        aiAssisted: true,
-        createdAt: true,
-      },
-    }),
-    prisma.pointFeature.count({
-      where: {
-        moderationStatus: "approved",
-        dataOrigin: "collected",
-        ...cityFilter,
-      },
-    }),
-    includePending
-      ? prisma.pointFeature.count({ where: { moderationStatus: "pending" } })
-      : Promise.resolve(null),
-  ]);
+  const collectedCount = 0;
+
+  const pending = includePending ? 0 : null;
 
   const cutoff =
     days === "all" ? null : new Date(Date.now() - days * DAY_MS);
@@ -303,8 +306,7 @@ export async function getDashboardData(
       issueType: point.issueType as IssueType,
       priority: point.priority as Priority,
       createdAt: point.createdAt.toISOString(),
-      dataOrigin:
-        point.dataOrigin === "collected" ? "collected" : "simulated",
+      dataOrigin: "simulated",
     })),
   };
 }

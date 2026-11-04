@@ -13,7 +13,6 @@ interface FiltersBarProps {
   filters: FiltersState;
   totalPoints: number;
   filteredPoints: number;
-  collectedCount: number;
   simulatedCount: number;
   showSimulated: boolean;
   onShowSimulatedChange: (value: boolean) => void;
@@ -28,7 +27,6 @@ export default function FiltersBar({
   filters,
   totalPoints,
   filteredPoints,
-  collectedCount,
   simulatedCount,
   showSimulated,
   onShowSimulatedChange,
@@ -127,8 +125,8 @@ export default function FiltersBar({
             <strong className="font-semibold text-emerald-950">
               {filteredPoints}
             </strong>{" "}
-            de {totalPoints} pontos visíveis · {collectedCount} coletados ·{" "}
-            {simulatedCount} simulados
+            de {totalPoints} pontos simulados visíveis · {simulatedCount}{" "}
+            simulados no total
           </div>
 
           <button
@@ -137,7 +135,7 @@ export default function FiltersBar({
             className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-900 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800"
           >
             <MapPinPlus className="h-4 w-4" />
-            Adicionar ponto
+            Simular novo ponto
           </button>
         </div>
       </div>

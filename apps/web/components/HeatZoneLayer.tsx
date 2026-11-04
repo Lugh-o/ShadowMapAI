@@ -32,6 +32,9 @@ export default function HeatZoneLayer({ zones }: HeatZoneLayerProps) {
               <p className="text-xs">
                 Intensidade: {getHeatLevelLabel(zone.intensity)}
               </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-300">
+                Zona simulada
+              </p>
             </div>
           </Tooltip>
         </Polygon>

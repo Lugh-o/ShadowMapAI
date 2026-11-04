@@ -13,17 +13,13 @@ import {
   X,
 } from "lucide-react";
 
-import AssistantChat from "@/components/AssistantChat";
 import FiltersBar from "@/components/FiltersBar";
 import Legend from "@/components/Legend";
-import PointFeedbackModal from "@/components/PointFeedbackModal";
 import Sidebar from "@/components/Sidebar";
-import { usePilotRef } from "@/lib/use-pilot-ref";
-import { cn, sortPointsByCriticality } from "@/lib/utils";
+import { cn, derivePriority, sortPointsByCriticality } from "@/lib/utils";
 import type {
   FiltersState,
   HeatZone,
-  PointDraftResult,
   PointFeature,
   PointFormValues,
 } from "@shadowmap/types";
@@ -40,7 +36,7 @@ const DynamicMapView = dynamic(() => import("@/components/MapView"), {
 const TOUR_STORAGE_KEY = "shadowmap-tour-completed";
 
 const initialFilters: FiltersState = {
-  city: "all",
+  city: "Salvador",
   issueType: "all",
   priority: "all",
 };
@@ -60,52 +56,51 @@ const tourSteps = [
   },
   {
     id: "dados",
-    title: "Coletado x simulado",
+    title: "Dados simulados",
     description:
-      "Por padrão o mapa mostra apenas relatos coletados. Dados de demonstração só aparecem ao ligar o botão e sempre vêm marcados como SIMULADO.",
+      "Todos os pontos e zonas deste mapa são simulados para demonstração. Eles não representam medições reais nem relatos de moradores.",
   },
   {
     id: "cadastro",
-    title: "Clique para cadastrar",
+    title: "Clique para simular um cadastro",
     description:
-      "Toque no mapa para capturar latitude e longitude e abrir o formulário no painel lateral.",
+      "Toque no mapa para capturar latitude e longitude e abrir o formulário no painel lateral. O ponto é adicionado apenas à tela desta sessão: nada é salvo.",
   },
   {
     id: "sobre",
-    title: "Sobre o projeto",
+    title: "Sobre a demonstração",
     description:
-      "O botão ao lado do selo abre o modal com o que o projeto é e o que esta disciplina acrescenta.",
+      "O botão ao lado do selo explica o objetivo da amostra visual, sem login e sem persistência de dados.",
   },
 ];
 
 const comparisonRows = [
   {
-    topic: "Registro de ocorrências",
-    original: "Formulário manual (calor, sombra e prioridade escolhidos pela pessoa)",
+    topic: "Origem dos dados",
+    original: "Banco de dados e relatos reais de moradores",
     current:
-      "Descrição em linguagem natural → IA sugere classificação → pessoa confirma",
+      "Arquivo local de demonstração com pontos e zonas marcados como SIMULADO",
   },
   {
-    topic: "Apoio ao cidadão",
-    original: "Nenhum",
-    current: "Assistente conversacional com instruções de escopo e dados do projeto",
+    topic: "Acesso",
+    original: "Login por e-mail/senha e Google",
+    current: "Sem login: o mapa é público e abre direto na demonstração",
   },
   {
-    topic: "Análise",
-    original: "Painel de curadoria manual",
+    topic: "Cadastro de ponto",
+    original: "Persistido no banco e enviado para moderação",
     current:
-      "Dashboard com ranking transparente de bairros e indicador de amostra pequena",
+      "Simulado apenas na tela desta sessão; nada é enviado nem salvo",
   },
   {
-    topic: "Qualidade dos dados",
-    original: "Não tratada",
-    current:
-      "Validação anti-ruído (limites geográficos, duplicidade) e separação coletado/simulado",
+    topic: "Mapa",
+    original: "Camadas CARTO com chave de API",
+    current: "OpenStreetMap, que não exige chave de API",
   },
   {
-    topic: "Avaliação",
-    original: "—",
-    current: "Feedback, uso da IA e origem por aplicador do piloto",
+    topic: "Escopo",
+    original: "Região Metropolitana de Salvador",
+    current: "Recorte visual das ilhas de calor em Salvador",
   },
 ];
 
@@ -118,10 +113,10 @@ export default function ShadowMapDashboard({
   initialPoints,
   initialHeatZones,
 }: ShadowMapDashboardProps) {
-  const [points] = useState(initialPoints);
+  const [points, setPoints] = useState(initialPoints);
   const [filters, setFilters] = useState<FiltersState>(initialFilters);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(
-    initialPoints.find((point) => point.dataOrigin === "collected")?.id ?? null,
+    initialPoints[0]?.id ?? null,
   );
   const [draftLocation, setDraftLocation] = useState<{
     lat: number;
@@ -135,15 +130,11 @@ export default function ShadowMapDashboard({
   const [formKey, setFormKey] = useState(0);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
-  const [showSimulated, setShowSimulated] = useState(
-    process.env.NEXT_PUBLIC_SHOW_SIMULATED_DEFAULT === "true",
-  );
+  const [showSimulated, setShowSimulated] = useState(true);
   const [submitMessage, setSubmitMessage] = useState<{
     tone: "success" | "error";
     text: string;
   } | null>(null);
-  const [feedbackPointId, setFeedbackPointId] = useState<string | null>(null);
-  const pilotRef = usePilotRef();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -158,14 +149,9 @@ export default function ShadowMapDashboard({
     return () => window.clearTimeout(timer);
   }, []);
 
-  const collectedCount = points.filter(
-    (point) => point.dataOrigin === "collected",
-  ).length;
-  const simulatedCount = points.length - collectedCount;
+  const simulatedCount = points.length;
 
-  const originPoints = points.filter(
-    (point) => showSimulated || point.dataOrigin === "collected",
-  );
+  const originPoints = showSimulated ? points : [];
 
   const filteredPoints = originPoints.filter((point) => {
     const matchesCity = filters.city === "all" || point.city === filters.city;
@@ -190,94 +176,44 @@ export default function ShadowMapDashboard({
     : filteredPoints[0]?.id ?? null;
 
   const selectedPoint =
-    originPoints.find((point) => point.id === effectiveSelectedPointId) ?? null;
+    points.find((point) => point.id === effectiveSelectedPointId) ?? null;
   const criticalPoints = sortPointsByCriticality(filteredPoints).slice(0, 5);
   const criticalCount = filteredPoints.filter(
     (point) => point.priority === "critical",
   ).length;
-  const activeCities = new Set(filteredPoints.map((point) => point.city)).size;
 
-  const originLabel = showSimulated
-    ? "coletados + simulados"
-    : "somente coletados";
+  const originLabel = showSimulated ? "simulados" : "dados ocultos";
 
-  async function handlePointSubmit(
+  function handlePointSubmit(
     values: PointFormValues,
     submittedWithAi: boolean,
   ) {
     setSubmitMessage(null);
 
-    try {
-      const response = await fetch("/api/points", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...values,
-          neighborhood: values.neighborhood.trim(),
-          description: values.description.trim(),
-          aiAssisted: submittedWithAi,
-          ref: pilotRef ?? undefined,
-        }),
-      });
+    const created: PointFeature = {
+      id: `sim-${Date.now()}`,
+      ...values,
+      neighborhood: values.neighborhood.trim(),
+      description: values.description.trim(),
+      priority: derivePriority(values.heatLevel, values.shadeLevel),
+      moderationStatus: "approved",
+      dataOrigin: "simulated",
+      aiAssisted: submittedWithAi,
+      submittedAt: new Date().toISOString(),
+    };
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => null);
-
-        if (response.status === 401) {
-          setSubmitMessage({
-            tone: "error",
-            text: "Entre na sua conta para enviar um relato.",
-          });
-          return;
-        }
-
-        if (error?.code === "DUPLICATE") {
-          setSubmitMessage({
-            tone: "error",
-            text: "Já existe um relato parecido muito perto deste local nas últimas 24 horas.",
-          });
-          return;
-        }
-
-        if (error?.code === "OUT_OF_REGION") {
-          setSubmitMessage({
-            tone: "error",
-            text: "Este local está fora da região do projeto. Marque um ponto em Salvador, Camaçari, Lauro de Freitas ou Simões Filho.",
-          });
-          return;
-        }
-
-        setSubmitMessage({
-          tone: "error",
-          text:
-            error?.error ||
-            "Não foi possível enviar o relato. Confira os campos e tente novamente.",
-        });
-        return;
-      }
-
-      const created = (await response.json().catch(() => null)) as {
-        id?: string;
-      } | null;
-
-      // O ponto enviado fica pendente de moderação: não entra no mapa ainda.
-      setDraftLocation(null);
-      setDraftValues(null);
-      setAiAssisted(false);
-      setIsFormOpen(false);
-      setSubmitMessage({
-        tone: "success",
-        text: "Relato enviado! Ele ficará pendente de aprovação até ser revisado pela equipe.",
-      });
-      setFeedbackPointId(created?.id ?? "");
-    } catch {
-      setSubmitMessage({
-        tone: "error",
-        text: "Erro de conexão. Verifique sua internet e tente novamente.",
-      });
-    }
+    setPoints((current) => [created, ...current]);
+    setFilters((current) => ({ ...current, city: created.city }));
+    setShowSimulated(true);
+    setSelectedPointId(created.id);
+    setDraftLocation(null);
+    setDraftValues(null);
+    setAiAssisted(false);
+    setIsFormOpen(false);
+    setSubmitMessage({
+      tone: "success",
+      text: "Ponto simulado adicionado ao mapa desta sessão. Nenhum dado foi salvo ou enviado.",
+    });
   }
 
   function handleMapPick(location: { lat: number; lng: number }) {
@@ -297,23 +233,6 @@ export default function ShadowMapDashboard({
     setDraftValues(null);
     setAiAssisted(false);
     setIsFormOpen(false);
-  }
-
-  function handleUseDraft(result: PointDraftResult) {
-    const values: Partial<PointFormValues> = {
-      description: result.draft.description,
-    };
-
-    if (result.draft.issueType) values.issueType = result.draft.issueType;
-    if (result.draft.heatLevel) values.heatLevel = result.draft.heatLevel;
-    if (result.draft.shadeLevel) values.shadeLevel = result.draft.shadeLevel;
-    if (result.suggestedPriority) values.priority = result.suggestedPriority;
-
-    setDraftValues(values);
-    setAiAssisted(true);
-    setFormKey((value) => value + 1);
-    setSubmitMessage(null);
-    setIsFormOpen(true);
   }
 
   function closeTour() {
@@ -348,12 +267,12 @@ export default function ShadowMapDashboard({
               </div>
               <div>
                 <h1 className="font-display text-3xl font-semibold tracking-tight text-emerald-950 md:text-4xl">
-                  Mapeamento coletivo de calor urbano e baixa arborização
+                  Mapa demonstrativo de ilhas de calor em Salvador
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-950/72 md:text-base">
-                  Projeto de extensão da UCSAL para registrar, com a comunidade,
-                  pontos de desconforto térmico em Salvador, Camaçari, Lauro de
-                  Freitas e Simões Filho.
+                  Amostra visual do ShadowMap AI: pontos e zonas de calor são
+                  dados SIMULADOS para demonstrar a interface, sem login e sem
+                  persistência.
                 </p>
               </div>
             </div>
@@ -361,7 +280,7 @@ export default function ShadowMapDashboard({
             <div className="grid gap-3 sm:grid-cols-3">
               <MetricCard
                 icon={MapPinned}
-                label={`Relatos (${originLabel})`}
+                label={`Pontos (${originLabel})`}
                 value={String(filteredPoints.length)}
                 tone="emerald"
               />
@@ -373,13 +292,20 @@ export default function ShadowMapDashboard({
               />
               <MetricCard
                 icon={Trees}
-                label="Cidades com relatos"
-                value={String(activeCities)}
+                label="Zonas ilustrativas"
+                value={String(visibleHeatZones.length)}
                 tone="teal"
               />
             </div>
           </div>
         </header>
+
+        <section className="rounded-[24px] border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+          <strong>Todos os dados desta página são simulados.</strong> Os pontos
+          e as zonas de calor foram criados apenas para demonstrar a interface
+          em Salvador. Eles não são medições de temperatura, não vieram de
+          moradores e não são salvos em banco de dados.
+        </section>
 
         {submitMessage ? (
           <div
@@ -403,29 +329,10 @@ export default function ShadowMapDashboard({
           </div>
         ) : null}
 
-        {collectedCount === 0 ? (
-          <section className="glass-panel rounded-[28px] p-5 md:p-6">
-            <p className="font-display text-lg font-semibold text-emerald-950">
-              Ainda não há relatos coletados nesta região.
-            </p>
-            <p className="mt-1 text-sm leading-6 text-emerald-950/72">
-              Seja a primeira pessoa a registrar um ponto.
-            </p>
-            <button
-              type="button"
-              onClick={openManualForm}
-              className="mt-4 inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-900 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800"
-            >
-              Registrar um ponto
-            </button>
-          </section>
-        ) : null}
-
         <FiltersBar
           filters={filters}
           totalPoints={originPoints.length}
           filteredPoints={filteredPoints.length}
-          collectedCount={collectedCount}
           simulatedCount={simulatedCount}
           showSimulated={showSimulated}
           onShowSimulatedChange={setShowSimulated}
@@ -481,15 +388,6 @@ export default function ShadowMapDashboard({
 
       <TourModal isOpen={isTourOpen} onClose={closeTour} />
 
-      <PointFeedbackModal
-        key={feedbackPointId ?? "closed"}
-        isOpen={feedbackPointId !== null}
-        pointId={feedbackPointId}
-        pilotRef={pilotRef}
-        onClose={() => setFeedbackPointId(null)}
-      />
-
-      <AssistantChat onUseDraft={handleUseDraft} />
     </main>
   );
 }
@@ -547,10 +445,10 @@ function AboutProjectModal({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-              Sobre o projeto
+              Sobre a demonstração
             </p>
             <h2 className="mt-1 font-display text-2xl font-semibold text-emerald-950">
-              O que é o ShadowMap AI
+              O que é esta amostra
             </h2>
           </div>
 
@@ -568,15 +466,15 @@ function AboutProjectModal({
           <section className="card-strong rounded-[24px] p-4 text-sm leading-6 text-emerald-950/78">
             <p>
               O ShadowMap AI é um projeto de extensão da UCSAL sobre ilhas de
-              calor e arborização urbana na Região Metropolitana de Salvador.
-              Moradores registram pontos de desconforto térmico e a equipe
-              revisa cada relato antes de publicá-lo no mapa.
+              calor e arborização urbana em Salvador. Esta versão é uma{" "}
+              <strong>amostra visual</strong>: o mapa usa dados simulados e não
+              há login, cadastro real, moderação ou persistência em banco.
             </p>
           </section>
 
           <section className="card-strong rounded-[24px] p-4">
             <h3 className="font-display text-lg font-semibold text-emerald-950">
-              O que esta disciplina acrescenta
+              O que muda nesta demonstração
             </h3>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[620px] border-collapse text-left text-sm">
@@ -586,10 +484,10 @@ function AboutProjectModal({
                       Tema
                     </th>
                     <th className="border-b border-emerald-950/10 py-2 pr-3">
-                      Versão original
+                      Versão completa
                     </th>
                     <th className="border-b border-emerald-950/10 py-2">
-                      Esta disciplina
+                      Esta amostra
                     </th>
                   </tr>
                 </thead>
@@ -614,8 +512,8 @@ function AboutProjectModal({
 
           <section className="rounded-[24px] border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
             <strong>Dados marcados como SIMULADO servem apenas para demonstração.</strong>{" "}
-            Eles não foram enviados por moradores e não representam medições de
-            temperatura.
+            Eles não foram enviados por moradores, não representam medições de
+            temperatura e não são gravados em nenhum banco de dados.
           </section>
 
           <div className="flex flex-col gap-3 sm:flex-row">

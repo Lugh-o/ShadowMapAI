@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
-import { LogIn, LogOut, User } from "lucide-react";
+import { FlaskConical } from "lucide-react";
 
 export default function Navbar() {
-  const { data: session, status } = useSession();
   const pathname = usePathname();
 
   return (
@@ -29,49 +27,10 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {status === "loading" && (
-            <div className="h-8 w-8 animate-pulse rounded-full bg-emerald-100" />
-          )}
-
-          {status === "authenticated" && session?.user && (
-            <div className="flex items-center gap-3">
-              <div className="hidden items-center gap-2 sm:flex">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                  {session.user.image ? (
-                    <img
-                      src={session.user.image}
-                      alt=""
-                      className="h-8 w-8 rounded-full"
-                    />
-                  ) : (
-                    <User className="h-4 w-4" />
-                  )}
-                </div>
-                <span className="text-sm font-medium text-emerald-950">
-                  Bem-vindo, {session.user.name || session.user.email?.split("@")[0]}
-                </span>
-              </div>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-950/10 bg-white px-3 py-2 text-sm font-medium text-emerald-950 transition hover:bg-emerald-50"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sair</span>
-              </button>
-            </div>
-          )}
-
-          {status === "unauthenticated" && (
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
-            >
-              <LogIn className="h-4 w-4" />
-              Entrar
-            </Link>
-          )}
-        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-900">
+          <FlaskConical className="h-3.5 w-3.5" />
+          Demo · dados simulados
+        </span>
       </div>
     </nav>
   );

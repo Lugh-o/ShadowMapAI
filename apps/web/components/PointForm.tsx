@@ -128,6 +128,11 @@ export default function PointForm({
         </div>
       ) : null}
 
+      <div className="rounded-[22px] border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        Este formulário é apenas uma simulação. Ao concluir, o ponto aparece no
+        mapa desta sessão, mas nenhum dado é gravado ou enviado.
+      </div>
+
       <div className="rounded-[22px] bg-emerald-50 px-4 py-3 text-sm text-emerald-950/72">
         {draftLocation
           ? "Coordenadas capturadas pelo clique no mapa. Você pode ajustar manualmente, se necessário."
@@ -282,7 +287,7 @@ export default function PointForm({
           type="submit"
           className="inline-flex h-12 items-center justify-center rounded-2xl bg-emerald-900 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800"
         >
-          Salvar ponto
+          Adicionar ponto simulado
         </button>
         <button
           type="button"
