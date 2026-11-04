@@ -4,6 +4,7 @@ import Link from "next/link";
 import DailyChart from "@/components/dashboard/DailyChart";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import DistributionBars from "@/components/dashboard/DistributionBars";
+import PilotPanel from "@/components/dashboard/PilotPanel";
 import RankingTable from "@/components/dashboard/RankingTable";
 import { auth } from "@/auth";
 import {
@@ -11,6 +12,7 @@ import {
   parseDashboardParams,
   type RecentPoint,
 } from "@/lib/dashboard";
+import { getPilotData } from "@/lib/pilot";
 import { getIssueTypeLabel, getPriorityLabel } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +55,7 @@ export default async function DashboardPage({
   const isAdmin = Boolean(email) && adminEmails.includes(email);
 
   const data = await getDashboardData({ ...filters, includePending: isAdmin });
+  const pilotData = isAdmin ? await getPilotData() : null;
 
   const hasNoCollected = filters.origin === "collected" && data.collectedCount === 0;
   const hasNoFilteredData = data.totals.approved === 0;
@@ -90,6 +93,8 @@ export default async function DashboardPage({
         </header>
 
         <DashboardFilters filters={filters} />
+
+        {isAdmin && pilotData ? <PilotPanel data={pilotData} /> : null}
 
         {hasNoCollected ? (
           <EmptyState
