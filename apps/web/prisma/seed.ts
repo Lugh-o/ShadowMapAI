@@ -299,6 +299,21 @@ async function main() {
     });
   }
 
+  // Remove entradas corrigidas na revisão de espécies (T4) para que seeds
+  // antigos não deixem dados incorretos no banco.
+  await prisma.nativeSpecies.deleteMany({
+    where: {
+      scientificName: {
+        in: [
+          "Bertholletia excelsa",
+          "Rhizophora mangle",
+          "Cocos nucifera",
+          "Caesalpinia echinata",
+        ],
+      },
+    },
+  });
+
   console.log("Seed completed!");
 }
 
