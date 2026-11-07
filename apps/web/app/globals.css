@@ -105,6 +105,34 @@ textarea {
   .initial-guide-step-button {
     flex-direction: row;
   }
+
+  .zone-drawing-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .zone-tools-caption {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .zone-tools-instruction {
+    display: none;
+  }
+
+  .zone-tools-actions {
+    flex: 1;
+    min-width: 0;
+    margin-top: 0;
+  }
+
+  .zone-tools-note {
+    width: 100%;
+    margin-top: 0;
+  }
 }
 
 .leaflet-container {
@@ -115,6 +143,38 @@ textarea {
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: contain;
+}
+
+.zone-drawing-active .leaflet-container {
+  cursor: crosshair;
+}
+
+.zone-editing-active .leaflet-overlay-pane .map-point-marker,
+.zone-editing-active .leaflet-overlay-pane .heat-zone {
+  pointer-events: none;
+}
+
+.zone-vertex {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.zone-vertex > span {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #065f46;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 5px rgba(6, 78, 59, 0.3);
+}
+
+.zone-vertex:focus-visible {
+  border-radius: 50%;
+  outline: 2px solid #047857;
+  outline-offset: -2px;
 }
 
 .leaflet-control-zoom {

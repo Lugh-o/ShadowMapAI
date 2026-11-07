@@ -4,10 +4,12 @@ import { createContext, useContext, useMemo, useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type {
   FiltersState,
+  HeatZone,
   PointFeature,
   PointFormValues,
 } from "@shadowmap/types";
 import type { DashboardParams } from "@/lib/dashboard";
+import type { ZoneDraft } from "@/lib/zone-geometry";
 import {
   DEFAULT_MAP_CENTER,
   derivePriority,
@@ -21,6 +23,9 @@ export interface MapLocation {
 
 interface DemoSession {
   points: PointFeature[];
+  createdZones: HeatZone[];
+  zoneDraft: ZoneDraft | null;
+  selectedZoneId: string | null;
   filters: FiltersState;
   dashboardFilters: DashboardParams;
   selectedPointId: string | null;
@@ -63,6 +68,9 @@ export default function DemoSessionProvider({
 }) {
   const [session, setSession] = useState<DemoSession>(() => ({
     points: initialPoints,
+    createdZones: [],
+    zoneDraft: null,
+    selectedZoneId: null,
     filters: { city: "Salvador", issueType: "all", priority: "all" },
     dashboardFilters: { city: "all", days: "all" },
     selectedPointId: initialPoints[0]?.id ?? null,

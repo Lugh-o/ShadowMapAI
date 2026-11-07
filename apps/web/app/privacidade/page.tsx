@@ -55,12 +55,14 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <Section title="Cadastro de ponto">
+        <Section title="Cadastro de pontos e zonas">
           <p>
-            O formulário de cadastro é uma simulação. Ao concluir, o ponto fica
-            disponível no mapa e no painel enquanto você navega pela
-            demonstração. Ao recarregar a página, os pontos adicionados e os
-            rascunhos são descartados. Nada é enviado para um servidor, gravado
+            Os cadastros são simulações. Pontos e zonas criados ficam
+            disponíveis nesta sessão enquanto você navega pela demonstração.
+            As zonas podem ser desenhadas, editadas e excluídas, com intensidade
+            de calor informada por você e apenas ilustrativa. Ao recarregar a
+            página, os pontos, as zonas adicionadas e os rascunhos são
+            descartados. Nada é enviado para um servidor, gravado
             em banco de dados ou compartilhado com terceiros.
           </p>
         </Section>

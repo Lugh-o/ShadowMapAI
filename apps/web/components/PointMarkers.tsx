@@ -25,6 +25,7 @@ interface PointMarkersProps {
   onSelectPoint: (pointId: string) => void;
   focusRequest: PointFocusRequest | null;
   popupTopPadding: number;
+  interactive?: boolean;
 }
 
 export default function PointMarkers({
@@ -33,17 +34,19 @@ export default function PointMarkers({
   onSelectPoint,
   focusRequest,
   popupTopPadding,
+  interactive = true,
 }: PointMarkersProps) {
   return (
     <>
       {points.map((point) => (
         <PointMarker
-          key={point.id}
+          key={`${point.id}-${interactive}`}
           point={point}
           isSelected={point.id === selectedPointId}
           focusToken={focusRequest?.pointId === point.id ? focusRequest.id : 0}
           onSelectPoint={onSelectPoint}
           popupTopPadding={popupTopPadding}
+          interactive={interactive}
         />
       ))}
     </>
@@ -56,12 +59,14 @@ function PointMarker({
   focusToken,
   onSelectPoint,
   popupTopPadding,
+  interactive,
 }: {
   point: PointFeature;
   isSelected: boolean;
   focusToken: number;
   onSelectPoint: (pointId: string) => void;
   popupTopPadding: number;
+  interactive: boolean;
 }) {
   const markerRef = useRef<LeafletCircleMarker>(null);
   const map = useMap();
@@ -78,6 +83,7 @@ function PointMarker({
   return (
     <CircleMarker
       ref={markerRef}
+      interactive={interactive}
       className="map-point-marker"
       bubblingMouseEvents={false}
       center={[point.lat, point.lng]}

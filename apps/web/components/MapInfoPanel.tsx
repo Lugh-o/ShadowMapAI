@@ -13,6 +13,9 @@ interface MapInfoPanelProps {
   onExpandedChange: (expanded: boolean) => void;
   focusRequest: number;
   isFormOpen: boolean;
+  panelTitle?: string;
+  contentKey?: string;
+  onEscape?: () => void;
   mapRef: RefObject<HTMLElement | null>;
   workspaceRef: RefObject<HTMLDivElement | null>;
 }
@@ -23,6 +26,9 @@ export default function MapInfoPanel({
   onExpandedChange,
   focusRequest,
   isFormOpen,
+  panelTitle,
+  contentKey,
+  onEscape,
   mapRef,
   workspaceRef,
 }: MapInfoPanelProps) {
@@ -146,6 +152,16 @@ export default function MapInfoPanel({
       onKeyDown={(event) => {
         if (
           event.key === "Escape" &&
+          onEscape &&
+          !document.querySelector("dialog[open], [popover]:popover-open")
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          onEscape();
+          return;
+        }
+        if (
+          event.key === "Escape" &&
           !window.matchMedia("(min-width: 64rem)").matches
         ) {
           event.preventDefault();
@@ -169,7 +185,8 @@ export default function MapInfoPanel({
         className="flex h-12 w-full shrink-0 items-center justify-between gap-2 px-3 text-left text-emerald-950 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-emerald-700 lg:hidden"
       >
         <span className="text-sm font-semibold">
-          {isFormOpen ? "Novo ponto simulado" : "Detalhes e pontos"}
+          {panelTitle ??
+            (isFormOpen ? "Novo ponto simulado" : "Detalhes e pontos")}
         </span>
         <span className="inline-flex items-center gap-1 text-xs text-emerald-950/60">
           {expanded ? "Recolher" : "Abrir"}
@@ -185,7 +202,7 @@ export default function MapInfoPanel({
         className={cn("min-h-0 flex-1", !expanded && "hidden lg:block")}
       >
         <ScrollPanel
-          resetKey={isFormOpen}
+          resetKey={contentKey ?? isFormOpen}
           className="h-full min-w-0 rounded-[inherit]"
         >
           {children}

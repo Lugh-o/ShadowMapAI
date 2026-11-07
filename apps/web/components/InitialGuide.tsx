@@ -45,7 +45,7 @@ const steps = [
     title: "Entenda as cores do mapa",
     description:
       "O contorno indica a prioridade de cada ponto. As áreas coloridas representam zonas ilustrativas de calor.",
-    tip: "A legenda fica no canto inferior esquerdo. Você pode abri-la ou recolhê-la.",
+    tip: "Abra a legenda no canto inferior esquerdo. Use “Nova zona” no mapa para desenhar uma área simulada.",
   },
   {
     id: "cadastro",

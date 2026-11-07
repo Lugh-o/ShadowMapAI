@@ -41,6 +41,7 @@ export interface HeatZone {
   name: string;
   coordinates: [number, number][];
   intensity: HeatLevel;
+  createdInSession?: boolean;
 }
 
 export interface FiltersState {

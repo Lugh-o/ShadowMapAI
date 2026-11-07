@@ -15,13 +15,20 @@ import {
 import HeatZoneLayer from "@/components/HeatZoneLayer";
 import BaseMapTiles from "@/components/BaseMapTiles";
 import PointMarkers from "@/components/PointMarkers";
+import ZoneDrawingLayer from "@/components/ZoneDrawingLayer";
+import ZoneDrawingToolbar from "@/components/ZoneDrawingToolbar";
 import {
   CITY_CENTERS,
   DEFAULT_MAP_CENTER,
   DEFAULT_MAP_ZOOM,
 } from "@/lib/utils";
 import type { FiltersState, HeatZone, PointFeature } from "@shadowmap/types";
-import type { BaseMapStatus, PointFocusRequest } from "@/lib/map-view";
+import type {
+  BaseMapStatus,
+  PointFocusRequest,
+  ZoneFocusRequest,
+} from "@/lib/map-view";
+import type { ZoneCoordinate, ZoneDraft } from "@/lib/zone-geometry";
 
 interface MapViewProps {
   city: FiltersState["city"];
@@ -36,6 +43,16 @@ interface MapViewProps {
   onRecenter: () => void;
   baseMapStatus: BaseMapStatus;
   onBaseMapStatusChange: (status: BaseMapStatus) => void;
+  zoneDraft: ZoneDraft | null;
+  selectedZoneId: string | null;
+  zoneFocusRequest: ZoneFocusRequest | null;
+  onSelectZone: (zoneId: string) => void;
+  onMoveZoneVertex: (index: number, coordinate: ZoneCoordinate) => void;
+  onUndoZoneVertex: () => void;
+  onCompleteZone: () => void;
+  onAdjustZone: () => void;
+  onShowZoneDetails: () => void;
+  onCancelZone: () => void;
 }
 
 export default function MapView({
@@ -51,10 +68,22 @@ export default function MapView({
   onRecenter,
   baseMapStatus,
   onBaseMapStatusChange,
+  zoneDraft,
+  selectedZoneId,
+  zoneFocusRequest,
+  onSelectZone,
+  onMoveZoneVertex,
+  onUndoZoneVertex,
+  onCompleteZone,
+  onAdjustZone,
+  onShowZoneDetails,
+  onCancelZone,
 }: MapViewProps) {
   const [tileAttempt, setTileAttempt] = useState(0);
   return (
-    <div className="relative h-full min-h-0 w-full overflow-hidden rounded-2xl">
+    <div
+      className={`relative h-full min-h-0 w-full overflow-hidden rounded-2xl ${zoneDraft ? "zone-editing-active" : ""} ${zoneDraft?.stage === "drawing" ? "zone-drawing-active" : ""}`}
+    >
       <MapContainer
         center={DEFAULT_MAP_CENTER}
         zoom={DEFAULT_MAP_ZOOM}
@@ -72,24 +101,41 @@ export default function MapView({
 
         <ZoomControl position="topright" />
         <MapSizeObserver />
-        <MapInteractions onMapPick={onMapPick} />
+        <MapInteractions
+          onMapPick={onMapPick}
+          zoneStage={zoneDraft?.stage ?? null}
+        />
         <FitToVisibleData
           city={city}
           points={points}
           zones={visibleHeatZones}
           recenterRequest={recenterRequest}
+          enabled={!zoneDraft}
         />
+        <FocusZone request={zoneFocusRequest} zones={visibleHeatZones} />
 
-        <HeatZoneLayer zones={visibleHeatZones} />
+        <HeatZoneLayer
+          zones={visibleHeatZones.filter(
+            (zone) => zone.id !== zoneDraft?.editingId,
+          )}
+          selectedZoneId={selectedZoneId}
+          onSelectZone={onSelectZone}
+          interactive={!zoneDraft}
+        />
         <PointMarkers
           points={points}
           selectedPointId={selectedPointId}
           onSelectPoint={onSelectPoint}
           focusRequest={focusRequest}
           popupTopPadding={baseMapStatus === "ready" ? 12 : 88}
+          interactive={!zoneDraft}
         />
 
-        {draftLocation ? (
+        {zoneDraft ? (
+          <ZoneDrawingLayer draft={zoneDraft} onMoveVertex={onMoveZoneVertex} />
+        ) : null}
+
+        {draftLocation && !zoneDraft ? (
           <CircleMarker
             center={[draftLocation.lat, draftLocation.lng]}
             radius={12}
@@ -107,12 +153,31 @@ export default function MapView({
           </CircleMarker>
         ) : null}
       </MapContainer>
+      {zoneDraft ? (
+        <div
+          className={`absolute left-3 right-14 z-[600] max-w-sm ${baseMapStatus === "ready" ? "top-3" : "top-24"}`}
+        >
+          <ZoneDrawingToolbar
+            draft={zoneDraft}
+            onUndo={onUndoZoneVertex}
+            onComplete={onCompleteZone}
+            onAdjust={onAdjustZone}
+            onShowDetails={onShowZoneDetails}
+            onCancel={onCancelZone}
+          />
+        </div>
+      ) : null}
       <button
         type="button"
         onClick={onRecenter}
+        disabled={Boolean(zoneDraft)}
         aria-label="Recentrar mapa"
-        title="Recentrar mapa"
-        className="absolute right-2.5 top-20 z-[500] inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-950/15 bg-white/95 text-emerald-950 shadow-sm hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-700"
+        title={
+          zoneDraft
+            ? "Conclua ou cancele a zona para recentralizar"
+            : "Recentrar mapa"
+        }
+        className="absolute right-2.5 top-20 z-[500] inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-950/15 bg-white/95 text-emerald-950 shadow-sm hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-700 disabled:opacity-40"
       >
         <Crosshair className="h-4 w-4" aria-hidden="true" />
       </button>
@@ -182,14 +247,33 @@ function MapSizeObserver() {
 
 function MapInteractions({
   onMapPick,
+  zoneStage,
 }: {
   onMapPick: (location: { lat: number; lng: number }) => void;
+  zoneStage: ZoneDraft["stage"] | null;
 }) {
-  useMapEvents({
+  const map = useMapEvents({
     click(event) {
+      if (zoneStage === "details") return;
+      const location = zoneStage ? map.wrapLatLng(event.latlng) : event.latlng;
       onMapPick({
-        lat: Number(event.latlng.lat.toFixed(6)),
-        lng: Number(event.latlng.lng.toFixed(6)),
+        lat: Number(location.lat.toFixed(6)),
+        lng: Number(location.lng.toFixed(6)),
+      });
+    },
+    keydown(event) {
+      if (
+        zoneStage !== "drawing" ||
+        event.originalEvent.key !== "Enter" ||
+        event.originalEvent.repeat ||
+        event.originalEvent.target !== map.getContainer()
+      )
+        return;
+      event.originalEvent.preventDefault();
+      const location = map.wrapLatLng(map.getCenter());
+      onMapPick({
+        lat: Number(location.lat.toFixed(6)),
+        lng: Number(location.lng.toFixed(6)),
       });
     },
   });
@@ -202,15 +286,18 @@ function FitToVisibleData({
   points,
   zones,
   recenterRequest,
+  enabled,
 }: {
   city: FiltersState["city"];
   points: PointFeature[];
   zones: HeatZone[];
   recenterRequest: number;
+  enabled: boolean;
 }) {
   const map = useMap();
 
   useEffect(() => {
+    if (!enabled) return;
     map.closePopup();
     const coordinates: [number, number][] = [
       ...points.map((point) => [point.lat, point.lng] as [number, number]),
@@ -234,7 +321,29 @@ function FitToVisibleData({
       padding: [36, 36],
       maxZoom: 12,
     });
-  }, [map, city, points, zones, recenterRequest]);
+  }, [map, city, points, zones, recenterRequest, enabled]);
 
+  return null;
+}
+
+function FocusZone({
+  request,
+  zones,
+}: {
+  request: ZoneFocusRequest | null;
+  zones: HeatZone[];
+}) {
+  const map = useMap();
+  useEffect(() => {
+    const zone = zones.find((item) => item.id === request?.zoneId);
+    if (!zone || !request) return;
+    map.closePopup();
+    map.fitBounds(L.latLngBounds(zone.coordinates), {
+      paddingTopLeft: [40, 64],
+      paddingBottomRight: [40, 100],
+      maxZoom: 15,
+      animate: false,
+    });
+  }, [map, request, zones]);
   return null;
 }

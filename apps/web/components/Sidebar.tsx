@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Flame, MapPin } from "lucide-react";
+import { ArrowLeft, Flame, MapPin, Pentagon } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import PointForm from "@/components/PointForm";
@@ -11,7 +11,7 @@ import {
   getPriorityLabel,
   getShadeLevelLabel,
 } from "@/lib/utils";
-import type { PointFeature, PointFormValues } from "@shadowmap/types";
+import type { HeatZone, PointFeature, PointFormValues } from "@shadowmap/types";
 
 interface SidebarProps {
   selectedPoint: PointFeature | null;
@@ -25,6 +25,8 @@ interface SidebarProps {
   onSelectPoint: (pointId: string) => void;
   onSubmitPoint: (values: PointFormValues, aiAssisted: boolean) => void;
   onDraftChange: (values: PointFormValues) => void;
+  createdZones: HeatZone[];
+  onSelectZone: (zoneId: string) => void;
 }
 
 export default function Sidebar({
@@ -39,6 +41,8 @@ export default function Sidebar({
   onSelectPoint,
   onSubmitPoint,
   onDraftChange,
+  createdZones,
+  onSelectZone,
 }: SidebarProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const previousModeRef = useRef(false);
@@ -108,6 +112,59 @@ export default function Sidebar({
         </section>
       ) : (
         <>
+          {createdZones.length ? (
+            <section className="card-strong rounded-2xl p-3">
+              <h3 className="flex items-center justify-between gap-2 font-display text-sm font-semibold text-emerald-950">
+                Zonas nesta sessão
+                <Pentagon className="h-4 w-4" aria-hidden="true" />
+              </h3>
+              <ul className="mt-1 divide-y divide-emerald-950/10">
+                {createdZones.slice(0, 3).map((zone) => (
+                  <li key={zone.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectZone(zone.id)}
+                      className="w-full rounded-lg px-1 py-2 text-left hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-700"
+                    >
+                      <span className="block break-words text-xs font-semibold">
+                        {zone.name}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-emerald-950/65">
+                        {zone.city} · {getHeatLevelLabel(zone.intensity)} ·
+                        Simulada
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {createdZones.length > 3 ? (
+                <details className="mt-1 text-xs">
+                  <summary className="cursor-pointer rounded-lg py-2 text-emerald-800 focus-visible:outline-2 focus-visible:outline-emerald-700">
+                    Ver mais {createdZones.length - 3} zonas
+                  </summary>
+                  <ul className="divide-y divide-emerald-950/10">
+                    {createdZones.slice(3).map((zone) => (
+                      <li key={zone.id}>
+                        <button
+                          type="button"
+                          onClick={() => onSelectZone(zone.id)}
+                          className="w-full rounded-lg px-1 py-2 text-left hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-700"
+                        >
+                          <span className="block break-words text-xs font-semibold">
+                            {zone.name}
+                          </span>
+                          <span className="block text-[11px] text-emerald-950/65">
+                            {zone.city} · {getHeatLevelLabel(zone.intensity)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+            </section>
+          ) : null}
+
           <section className="card-strong rounded-2xl p-3">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">

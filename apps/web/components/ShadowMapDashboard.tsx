@@ -2,13 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  AlertTriangle,
-  FlaskConical,
-  MapPinned,
-  Trees,
-  X,
-} from "lucide-react";
+import { AlertTriangle, FlaskConical, MapPinned, Trees, X } from "lucide-react";
 
 import AboutMapPopover from "@/components/AboutMapPopover";
 import {
@@ -21,6 +15,7 @@ import Legend from "@/components/Legend";
 import { useMapGuide } from "@/components/MapGuideProvider";
 import MapInfoPanel from "@/components/MapInfoPanel";
 import Sidebar from "@/components/Sidebar";
+import ZonePanel from "@/components/ZonePanel";
 import {
   cn,
   CITY_CENTERS,
@@ -29,8 +24,14 @@ import {
   sortPointsByCriticality,
 } from "@/lib/utils";
 import type { HeatZone, PointFeature, PointFormValues } from "@shadowmap/types";
-import type { BaseMapStatus, PointFocusRequest } from "@/lib/map-view";
+import type {
+  BaseMapStatus,
+  PointFocusRequest,
+  ZoneFocusRequest,
+} from "@/lib/map-view";
 import { useDesktopLayout } from "@/lib/use-desktop-layout";
+import { getZoneGeometryError, MAX_ZONE_VERTICES } from "@/lib/zone-geometry";
+import type { ZoneCoordinate } from "@/lib/zone-geometry";
 
 const DynamicMapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -61,6 +62,9 @@ export default function ShadowMapDashboard({
     isFormOpen,
     showSimulated,
     isLegendExpanded,
+    createdZones,
+    zoneDraft,
+    selectedZoneId,
   } = session;
   const mapSectionRef = useRef<HTMLElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -68,11 +72,20 @@ export default function ShadowMapDashboard({
   const focusIdRef = useRef(0);
   const isDesktop = useDesktopLayout();
   const isLegendOpen = isLegendExpanded ?? isDesktop;
-  const [isPanelExpanded, setIsPanelExpanded] = useState(isFormOpen);
+  const [isPanelExpanded, setIsPanelExpanded] = useState(
+    zoneDraft
+      ? zoneDraft.stage === "details"
+      : isFormOpen || Boolean(selectedZoneId),
+  );
   const [panelFocusRequest, setPanelFocusRequest] = useState(0);
   const [pointFocusRequest, setPointFocusRequest] =
     useState<PointFocusRequest | null>(null);
   const [recenterRequest, setRecenterRequest] = useState(0);
+  const [zoneFocusRequest, setZoneFocusRequest] =
+    useState<ZoneFocusRequest | null>(
+      selectedZoneId ? { zoneId: selectedZoneId, id: 0 } : null,
+    );
+  const [removedZone, setRemovedZone] = useState<HeatZone | null>(null);
   const [baseMapStatus, setBaseMapStatus] = useState<BaseMapStatus>("loading");
   const guidedEntryRef = useRef(Boolean(pendingAction));
   const [isTourOpen, setIsTourOpen] = useState(false);
@@ -85,7 +98,8 @@ export default function ShadowMapDashboard({
     const timer = window.setTimeout(() => {
       let hasCompletedTour = false;
       try {
-        hasCompletedTour = window.localStorage.getItem(TOUR_STORAGE_KEY) === "1";
+        hasCompletedTour =
+          window.localStorage.getItem(TOUR_STORAGE_KEY) === "1";
       } catch {
         // The guide remains available when browser storage is disabled.
       }
@@ -123,12 +137,14 @@ export default function ShadowMapDashboard({
   const visibleHeatZones = useMemo(
     () =>
       showSimulated
-        ? initialHeatZones.filter(
+        ? [...initialHeatZones, ...createdZones].filter(
             (zone) => filters.city === "all" || zone.city === filters.city,
           )
         : [],
-    [initialHeatZones, showSimulated, filters.city],
+    [initialHeatZones, createdZones, showSimulated, filters.city],
   );
+  const selectedZone =
+    visibleHeatZones.find((zone) => zone.id === selectedZoneId) ?? null;
 
   const effectiveSelectedPointId = filteredPoints.some(
     (point) => point.id === selectedPointId,
@@ -163,7 +179,12 @@ export default function ShadowMapDashboard({
 
   const selectMapPoint = useCallback(
     (selectedPointId: string) => {
-      setSession((current) => ({ ...current, selectedPointId }));
+      setSession((current) => ({
+        ...current,
+        selectedPointId,
+        selectedZoneId: null,
+      }));
+      setZoneFocusRequest(null);
       setIsPanelExpanded(false);
     },
     [setSession],
@@ -180,7 +201,9 @@ export default function ShadowMapDashboard({
       ...current,
       filters: { city: "all", issueType: "all", priority: "all" },
       showSimulated: true,
+      selectedZoneId: null,
     }));
+    setZoneFocusRequest(null);
     setPointFocusRequest(null);
     setRecenterRequest((value) => value + 1);
     requestAnimationFrame(() =>
@@ -190,6 +213,7 @@ export default function ShadowMapDashboard({
 
   function recenterMap() {
     setPointFocusRequest(null);
+    setZoneFocusRequest(null);
     setRecenterRequest((value) => value + 1);
   }
 
@@ -198,6 +222,7 @@ export default function ShadowMapDashboard({
     submittedWithAi: boolean,
   ) {
     setSubmitMessage(null);
+    setRemovedZone(null);
 
     const created: PointFeature = {
       id: `sim-${Date.now()}`,
@@ -220,6 +245,7 @@ export default function ShadowMapDashboard({
       draftLocation: null,
       draftValues: null,
       isFormOpen: false,
+      selectedZoneId: null,
     }));
     focusPoint(created.id);
     setSubmitMessage({
@@ -229,8 +255,29 @@ export default function ShadowMapDashboard({
   }
 
   function handleMapPick(location: { lat: number; lng: number }) {
+    if (zoneDraft) {
+      if (zoneDraft.stage !== "drawing") return;
+      setSession((current) =>
+        current.zoneDraft?.stage === "drawing" &&
+        current.zoneDraft.coordinates.length < MAX_ZONE_VERTICES
+          ? {
+              ...current,
+              zoneDraft: {
+                ...current.zoneDraft,
+                coordinates: [
+                  ...current.zoneDraft.coordinates,
+                  [location.lat, location.lng],
+                ],
+              },
+            }
+          : current,
+      );
+      return;
+    }
+    setZoneFocusRequest(null);
     setSession((current) => ({
       ...current,
+      selectedZoneId: null,
       draftLocation: location,
       draftValues: {
         ...(current.draftValues ?? createPointDraft(location)),
@@ -243,8 +290,17 @@ export default function ShadowMapDashboard({
   }
 
   const openManualForm = useCallback(() => {
+    if (zoneDraft) {
+      setSubmitMessage({
+        tone: "error",
+        text: "Conclua ou cancele a zona antes de criar um ponto. Seu desenho foi preservado.",
+      });
+      return;
+    }
+    setZoneFocusRequest(null);
     setSession((current) => ({
       ...current,
+      selectedZoneId: null,
       draftValues:
         current.draftValues ??
         (current.filters.city === "all"
@@ -256,7 +312,209 @@ export default function ShadowMapDashboard({
       isFormOpen: true,
     }));
     revealPanel();
-  }, [setSession, revealPanel]);
+  }, [setSession, revealPanel, zoneDraft]);
+
+  function startZone() {
+    setSubmitMessage(null);
+    setRemovedZone(null);
+    setPointFocusRequest(null);
+    setZoneFocusRequest(null);
+    setSession((current) => ({
+      ...current,
+      zoneDraft: {
+        editingId: null,
+        name: "",
+        city:
+          current.filters.city === "all" ? "Salvador" : current.filters.city,
+        intensity: "high",
+        coordinates: [],
+        stage: "drawing",
+      },
+      selectedZoneId: null,
+      isFormOpen: false,
+      showSimulated: true,
+    }));
+    setIsPanelExpanded(false);
+    requestAnimationFrame(scrollToWorkspace);
+  }
+
+  const cancelZone = useCallback(() => {
+    setSession((current) => ({
+      ...current,
+      selectedZoneId: current.zoneDraft?.editingId ?? null,
+      zoneDraft: null,
+    }));
+    setIsPanelExpanded(false);
+    requestAnimationFrame(() =>
+      mapSectionRef.current?.focus({ preventScroll: true }),
+    );
+  }, [setSession]);
+
+  function completeZone() {
+    if (!zoneDraft || getZoneGeometryError(zoneDraft.coordinates)) return;
+    setSession((current) =>
+      current.zoneDraft
+        ? { ...current, zoneDraft: { ...current.zoneDraft, stage: "details" } }
+        : current,
+    );
+    revealPanel();
+  }
+
+  function adjustZone() {
+    setSession((current) =>
+      current.zoneDraft
+        ? { ...current, zoneDraft: { ...current.zoneDraft, stage: "drawing" } }
+        : current,
+    );
+    setIsPanelExpanded(false);
+    requestAnimationFrame(scrollToWorkspace);
+  }
+
+  function moveZoneVertex(index: number, coordinate: ZoneCoordinate) {
+    setSession((current) =>
+      current.zoneDraft
+        ? {
+            ...current,
+            zoneDraft: {
+              ...current.zoneDraft,
+              coordinates: current.zoneDraft.coordinates.map((value, i) =>
+                i === index ? coordinate : value,
+              ),
+            },
+          }
+        : current,
+    );
+  }
+
+  function undoZoneVertex() {
+    setSession((current) =>
+      current.zoneDraft
+        ? {
+            ...current,
+            zoneDraft: {
+              ...current.zoneDraft,
+              coordinates: current.zoneDraft.coordinates.slice(0, -1),
+            },
+          }
+        : current,
+    );
+  }
+
+  function selectZone(zoneId: string) {
+    if (zoneDraft) return;
+    setPointFocusRequest(null);
+    setSession((current) => ({
+      ...current,
+      selectedZoneId: zoneId,
+      isFormOpen: false,
+    }));
+    setZoneFocusRequest({ zoneId, id: ++focusIdRef.current });
+    revealPanel();
+  }
+
+  function editZone(zone: HeatZone) {
+    if (!zone.createdInSession) return;
+    setSubmitMessage(null);
+    setRemovedZone(null);
+    setPointFocusRequest(null);
+    setSession((current) => ({
+      ...current,
+      zoneDraft: {
+        editingId: zone.id,
+        name: zone.name,
+        city: zone.city,
+        intensity: zone.intensity,
+        coordinates: zone.coordinates.map(([lat, lng]) => [lat, lng]),
+        stage: "details",
+      },
+    }));
+    setZoneFocusRequest({ zoneId: zone.id, id: ++focusIdRef.current });
+    revealPanel();
+  }
+
+  function saveZone() {
+    if (
+      !zoneDraft ||
+      zoneDraft.stage !== "details" ||
+      !zoneDraft.name.trim() ||
+      getZoneGeometryError(zoneDraft.coordinates)
+    )
+      return;
+    if (
+      zoneDraft.editingId &&
+      !createdZones.some((zone) => zone.id === zoneDraft.editingId)
+    )
+      return;
+    const zone: HeatZone = {
+      id:
+        zoneDraft.editingId ??
+        `zone-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: zoneDraft.name.trim(),
+      city: zoneDraft.city,
+      intensity: zoneDraft.intensity,
+      coordinates: zoneDraft.coordinates.map(([lat, lng]) => [lat, lng]),
+      createdInSession: true,
+    };
+    setSession((current) => ({
+      ...current,
+      createdZones: zoneDraft.editingId
+        ? current.createdZones.map((item) =>
+            item.id === zone.id ? zone : item,
+          )
+        : [zone, ...current.createdZones],
+      zoneDraft: null,
+      selectedZoneId: zone.id,
+      showSimulated: true,
+      filters: { ...current.filters, city: zone.city },
+    }));
+    setRemovedZone(null);
+    setSubmitMessage({
+      tone: "success",
+      text: zoneDraft.editingId
+        ? "Zona atualizada nesta sessão."
+        : "Zona simulada criada nesta sessão. Nada foi salvo ou enviado.",
+    });
+    setZoneFocusRequest({ zoneId: zone.id, id: ++focusIdRef.current });
+    setIsPanelExpanded(false);
+    requestAnimationFrame(scrollToWorkspace);
+  }
+
+  function deleteZone(zone: HeatZone) {
+    if (!zone.createdInSession) return;
+    setSession((current) => ({
+      ...current,
+      createdZones: current.createdZones.filter((item) => item.id !== zone.id),
+      selectedZoneId: null,
+      zoneDraft: null,
+    }));
+    setZoneFocusRequest(null);
+    setRemovedZone(zone);
+    setSubmitMessage({
+      tone: "success",
+      text: `Zona “${zone.name}” excluída desta sessão.`,
+    });
+    setIsPanelExpanded(false);
+    requestAnimationFrame(scrollToWorkspace);
+  }
+
+  function undoZoneDeletion() {
+    if (!removedZone) return;
+    setSession((current) => ({
+      ...current,
+      createdZones: current.createdZones.some(
+        (zone) => zone.id === removedZone.id,
+      )
+        ? current.createdZones
+        : [removedZone, ...current.createdZones],
+      selectedZoneId: removedZone.id,
+      showSimulated: true,
+      filters: { ...current.filters, city: removedZone.city },
+    }));
+    setZoneFocusRequest({ zoneId: removedZone.id, id: ++focusIdRef.current });
+    setSubmitMessage({ tone: "success", text: "Exclusão da zona desfeita." });
+    setRemovedZone(null);
+    requestAnimationFrame(scrollToWorkspace);
+  }
 
   useEffect(() => {
     if (!pendingAction) return;
@@ -374,10 +632,24 @@ export default function ShadowMapDashboard({
                 : "border-rose-300 bg-rose-50 text-rose-900",
             )}
           >
-            <p className="leading-6">{submitMessage.text}</p>
+            <div className="min-w-0">
+              <p className="break-words leading-6">{submitMessage.text}</p>
+              {removedZone ? (
+                <button
+                  type="button"
+                  onClick={undoZoneDeletion}
+                  className="mt-1 min-h-9 rounded-lg px-2 text-sm font-semibold underline underline-offset-2 hover:bg-white/60 focus-visible:outline-2 focus-visible:outline-emerald-700"
+                >
+                  Desfazer exclusão
+                </button>
+              ) : null}
+            </div>
             <button
               type="button"
-              onClick={() => setSubmitMessage(null)}
+              onClick={() => {
+                setSubmitMessage(null);
+                setRemovedZone(null);
+              }}
               className="shrink-0 rounded-full p-1 hover:bg-white/60"
               aria-label="Fechar aviso"
             >
@@ -400,14 +672,26 @@ export default function ShadowMapDashboard({
               showSimulated={showSimulated}
               onShowSimulatedChange={(showSimulated) => {
                 setPointFocusRequest(null);
-                setSession((current) => ({ ...current, showSimulated }));
+                setZoneFocusRequest(null);
+                setSession((current) => ({
+                  ...current,
+                  showSimulated,
+                  selectedZoneId: null,
+                }));
               }}
               onFiltersChange={(filters) => {
                 setPointFocusRequest(null);
-                setSession((current) => ({ ...current, filters }));
+                setZoneFocusRequest(null);
+                setSession((current) => ({
+                  ...current,
+                  filters,
+                  selectedZoneId: null,
+                }));
               }}
               onOpenForm={openManualForm}
+              onOpenZone={startZone}
               onClearFilters={clearFilters}
+              editingZone={Boolean(zoneDraft)}
             />
           </div>
 
@@ -432,15 +716,27 @@ export default function ShadowMapDashboard({
                 onRecenter={recenterMap}
                 baseMapStatus={baseMapStatus}
                 onBaseMapStatusChange={setBaseMapStatus}
+                zoneDraft={zoneDraft}
+                selectedZoneId={selectedZoneId}
+                zoneFocusRequest={zoneFocusRequest}
+                onSelectZone={selectZone}
+                onMoveZoneVertex={moveZoneVertex}
+                onUndoZoneVertex={undoZoneVertex}
+                onCompleteZone={completeZone}
+                onAdjustZone={adjustZone}
+                onShowZoneDetails={revealPanel}
+                onCancelZone={cancelZone}
               />
             </div>
 
-            {filteredPoints.length === 0 ? (
+            {!zoneDraft &&
+            filteredPoints.length === 0 &&
+            visibleHeatZones.length === 0 ? (
               <div
                 role="status"
                 className={cn(
                   "absolute left-4 right-16 z-500 max-w-sm rounded-xl border border-emerald-950/10 bg-white/95 p-3 text-xs text-emerald-950 shadow-sm",
-                  baseMapStatus === "ready" ? "top-4" : "top-24",
+                  baseMapStatus === "ready" ? "top-16" : "top-36",
                 )}
               >
                 <p className="font-semibold">
@@ -502,23 +798,66 @@ export default function ShadowMapDashboard({
             onExpandedChange={setIsPanelExpanded}
             focusRequest={panelFocusRequest}
             isFormOpen={isFormOpen}
+            panelTitle={
+              zoneDraft
+                ? zoneDraft.editingId
+                  ? "Editar zona"
+                  : "Nova zona simulada"
+                : selectedZone
+                  ? "Detalhes da zona"
+                  : undefined
+            }
+            contentKey={
+              zoneDraft
+                ? `zone-${zoneDraft.editingId ?? "new"}-${zoneDraft.stage}`
+                : selectedZone
+                  ? `zone-${selectedZone.id}`
+                  : undefined
+            }
+            onEscape={zoneDraft ? cancelZone : undefined}
             mapRef={mapSectionRef}
             workspaceRef={workspaceRef}
           >
-            <Sidebar
-              criticalPoints={criticalPoints}
-              draftLocation={draftLocation}
-              draftValues={draftValues}
-              isFormOpen={isFormOpen}
-              selectedPoint={selectedPoint}
-              totalPoints={originPoints.length}
-              onCloseForm={closeForm}
-              onSelectPoint={focusPoint}
-              onDraftChange={(draftValues) =>
-                setSession((current) => ({ ...current, draftValues }))
-              }
-              onSubmitPoint={handlePointSubmit}
-            />
+            {zoneDraft || selectedZone ? (
+              <ZonePanel
+                draft={zoneDraft}
+                zone={selectedZone}
+                onDraftChange={(zoneDraft) =>
+                  setSession((current) => ({ ...current, zoneDraft }))
+                }
+                onComplete={completeZone}
+                onAdjust={adjustZone}
+                onCancel={cancelZone}
+                onSave={saveZone}
+                onEdit={editZone}
+                onDelete={deleteZone}
+                onBack={() =>
+                  setSession((current) => ({
+                    ...current,
+                    selectedZoneId: null,
+                  }))
+                }
+              />
+            ) : (
+              <Sidebar
+                criticalPoints={criticalPoints}
+                draftLocation={draftLocation}
+                draftValues={draftValues}
+                isFormOpen={isFormOpen}
+                selectedPoint={selectedPoint}
+                totalPoints={originPoints.length}
+                onCloseForm={closeForm}
+                onSelectPoint={focusPoint}
+                onDraftChange={(draftValues) =>
+                  setSession((current) => ({ ...current, draftValues }))
+                }
+                onSubmitPoint={handlePointSubmit}
+                createdZones={visibleHeatZones.filter(
+                  (zone) => zone.createdInSession,
+                )}
+                onSelectZone={selectZone}
+              />
+            )}
           </MapInfoPanel>
         </div>
       </div>

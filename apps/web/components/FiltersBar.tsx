@@ -1,4 +1,4 @@
-import { Filter, Plus, RotateCcw } from "lucide-react";
+import { Filter, Pentagon, Plus, RotateCcw } from "lucide-react";
 
 import {
   CITY_OPTIONS,
@@ -18,7 +18,9 @@ interface FiltersBarProps {
   onShowSimulatedChange: (value: boolean) => void;
   onFiltersChange: (filters: FiltersState) => void;
   onOpenForm: () => void;
+  onOpenZone: () => void;
   onClearFilters: () => void;
+  editingZone?: boolean;
 }
 
 const selectClassName =
@@ -33,7 +35,9 @@ export default function FiltersBar({
   onShowSimulatedChange,
   onFiltersChange,
   onOpenForm,
+  onOpenZone,
   onClearFilters,
+  editingZone = false,
 }: FiltersBarProps) {
   return (
     <section
@@ -48,9 +52,10 @@ export default function FiltersBar({
               className="h-4 w-4 text-emerald-950/60"
             />
           </div>
-          <label className="flex w-36 shrink-0 items-center p-1.25 sm:w-44">
+          <label className="flex w-28 shrink-0 items-center p-1.25 sm:w-44">
             <span className="sr-only">Cidade</span>
             <select
+              disabled={editingZone}
               className={selectClassName}
               value={filters.city}
               onChange={(event) =>
@@ -72,6 +77,7 @@ export default function FiltersBar({
           <label className="flex w-60 shrink-0 items-center p-1.25">
             <span className="sr-only">Tipo de ocorrência</span>
             <select
+              disabled={editingZone}
               className={selectClassName}
               value={filters.issueType}
               onChange={(event) =>
@@ -93,6 +99,7 @@ export default function FiltersBar({
           <label className="flex w-40 shrink-0 items-center p-1.25">
             <span className="sr-only">Criticidade</span>
             <select
+              disabled={editingZone}
               className={selectClassName}
               value={filters.priority}
               onChange={(event) =>
@@ -112,6 +119,7 @@ export default function FiltersBar({
           </label>
           <label className="flex min-h-11.5 shrink-0 cursor-pointer items-center gap-1.25 p-1.25 text-xs text-emerald-950/78">
             <input
+              disabled={editingZone}
               type="checkbox"
               className="h-4 w-4 accent-emerald-800"
               checked={showSimulated}
@@ -131,17 +139,22 @@ export default function FiltersBar({
           </div>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-1 border-l border-emerald-950/10 p-1.25 text-xs">
+      <div
+        role="group"
+        aria-label="Ações do mapa"
+        className="flex shrink-0 items-center gap-1 border-l border-emerald-950/10 p-1.25 text-xs"
+      >
         <button
           type="button"
           onClick={onClearFilters}
           aria-label="Limpar filtros"
           title="Limpar filtros"
           disabled={
-            filters.city === "all" &&
-            filters.issueType === "all" &&
-            filters.priority === "all" &&
-            showSimulated
+            editingZone ||
+            (filters.city === "all" &&
+              filters.issueType === "all" &&
+              filters.priority === "all" &&
+              showSimulated)
           }
           className="inline-flex h-9 min-w-8 items-center justify-center gap-1.5 rounded-lg px-1.5 text-emerald-950/70 transition-colors hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-emerald-700 disabled:cursor-default disabled:opacity-35 motion-reduce:transition-none sm:px-2"
         >
@@ -151,10 +164,37 @@ export default function FiltersBar({
         <button
           type="button"
           onClick={onOpenForm}
-          className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-emerald-900 py-1.25 pl-2 pr-3 text-white transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+          aria-label="Novo ponto"
+          disabled={editingZone}
+          title={
+            editingZone
+              ? "Conclua ou cancele a zona para criar um ponto"
+              : "Novo ponto"
+          }
+          className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-emerald-900 px-2 text-white transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:opacity-40 sm:pl-2 sm:pr-3"
         >
-          <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-          <span className="font-semibold whitespace-nowrap">Novo ponto</span>
+          <Plus className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
+          <span className="font-semibold whitespace-nowrap">
+            <span className="sm:hidden">Ponto</span>
+            <span className="hidden sm:inline">Novo ponto</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenZone}
+          aria-label="Nova zona"
+          disabled={editingZone}
+          title={editingZone ? "Conclua ou cancele a zona atual" : "Nova zona"}
+          className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-emerald-900/25 bg-white/80 px-2 text-emerald-900 transition hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:opacity-40 sm:pl-2 sm:pr-3"
+        >
+          <Pentagon
+            className="hidden h-3.5 w-3.5 sm:block"
+            aria-hidden="true"
+          />
+          <span className="font-semibold whitespace-nowrap">
+            <span className="sm:hidden">Zona</span>
+            <span className="hidden sm:inline">Nova zona</span>
+          </span>
         </button>
       </div>
     </section>

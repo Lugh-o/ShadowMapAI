@@ -150,6 +150,18 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
       "Para simular um cadastro:\n\n1. Toque em “Novo ponto” para abrir o formulário no painel lateral.\n2. Preencha bairro, cidade, tipo de ocorrência, níveis de calor e sombra. A prioridade é calculada automaticamente.\n3. Envie o formulário.\n\nO ponto fica disponível no mapa e no painel durante a navegação. Os pontos adicionados e rascunhos são descartados ao recarregar a página. Nada é enviado para um servidor, gravado em banco ou compartilhado.",
   },
   {
+    id: "criar-zona",
+    label: "Criar uma zona",
+    summary:
+      "Use “Nova zona” no mapa, marque o contorno e conclua a área para preencher os dados. A zona é simulada e dura nesta sessão.",
+    related: ["ilhas-de-calor", "legenda", "dados-simulados"],
+    actionIds: ["show-map"],
+    question: "Como criar uma zona?",
+    keywords: ["criar zona", "criar uma zona", "nova zona", "desenhar zona", "desenhar area", "editar zona", "excluir zona", "contorno", "poligono"],
+    answer:
+      "No mapa, use “Nova zona”. Marque pelo menos três vértices e arraste os marcadores para ajustar o contorno. Use “Desfazer” se errar e “Concluir área” para abrir os dados no painel.\n\nInforme nome, cidade e intensidade ilustrativa do calor. Depois de criar, selecione a zona no mapa ou na lista “Zonas nesta sessão” para editar ou excluir. A exclusão pode ser desfeita pelo aviso.\n\nZonas criadas são simuladas e duram até recarregar a página. Durante o desenho, os cliques ficam reservados à zona; conclua ou cancele para voltar a criar pontos.",
+  },
+  {
     id: "prioridade",
     label: "Calcular prioridade",
     summary:
