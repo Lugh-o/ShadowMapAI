@@ -1,33 +1,41 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
-  Info,
+  FlaskConical,
   MapPinned,
   Trees,
   X,
 } from "lucide-react";
 
+import AboutMapPopover from "@/components/AboutMapPopover";
+import {
+  createPointDraft,
+  useDemoSession,
+} from "@/components/DemoSessionProvider";
 import FiltersBar from "@/components/FiltersBar";
+import InitialGuide from "@/components/InitialGuide";
 import Legend from "@/components/Legend";
+import { useMapGuide } from "@/components/MapGuideProvider";
+import MapInfoPanel from "@/components/MapInfoPanel";
 import Sidebar from "@/components/Sidebar";
-import { cn, derivePriority, sortPointsByCriticality } from "@/lib/utils";
-import type {
-  FiltersState,
-  HeatZone,
-  PointFeature,
-  PointFormValues,
-} from "@shadowmap/types";
+import {
+  cn,
+  CITY_CENTERS,
+  derivePriority,
+  inferCityFromCoordinates,
+  sortPointsByCriticality,
+} from "@/lib/utils";
+import type { HeatZone, PointFeature, PointFormValues } from "@shadowmap/types";
+import type { BaseMapStatus, PointFocusRequest } from "@/lib/map-view";
+import { useDesktopLayout } from "@/lib/use-desktop-layout";
 
 const DynamicMapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full min-h-[64svh] items-center justify-center rounded-[28px] bg-[rgba(255,255,255,0.52)] text-sm text-emerald-950/70">
+    <div className="flex h-full items-center justify-center rounded-2xl bg-[rgba(255,255,255,0.52)] text-sm text-emerald-950/70">
       Carregando mapa interativo...
     </div>
   ),
@@ -35,102 +43,39 @@ const DynamicMapView = dynamic(() => import("@/components/MapView"), {
 
 const TOUR_STORAGE_KEY = "shadowmap-tour-completed";
 
-const initialFilters: FiltersState = {
-  city: "Salvador",
-  issueType: "all",
-  priority: "all",
-};
-
-const tourSteps = [
-  {
-    id: "mapa",
-    title: "Mapa interativo",
-    description:
-      "No celular, o mapa fica livre para toque, arraste, zoom e seleção de pontos.",
-  },
-  {
-    id: "filtros",
-    title: "Filtros rápidos",
-    description:
-      "Use cidade, tipo de ocorrência e criticidade para reduzir o conjunto analisado.",
-  },
-  {
-    id: "dados",
-    title: "Dados simulados",
-    description:
-      "Todos os pontos e zonas deste mapa são simulados para demonstração. Eles não representam medições reais nem relatos de moradores.",
-  },
-  {
-    id: "cadastro",
-    title: "Clique para simular um cadastro",
-    description:
-      "Toque no mapa para capturar latitude e longitude e abrir o formulário no painel lateral. O ponto é adicionado apenas à tela desta sessão: nada é salvo.",
-  },
-  {
-    id: "sobre",
-    title: "Sobre a demonstração",
-    description:
-      "O botão ao lado do selo explica o objetivo da amostra visual, sem login e sem persistência de dados.",
-  },
-];
-
-const comparisonRows = [
-  {
-    topic: "Origem dos dados",
-    original: "Banco de dados e relatos reais de moradores",
-    current:
-      "Arquivo local de demonstração com pontos e zonas marcados como SIMULADO",
-  },
-  {
-    topic: "Acesso",
-    original: "Login por e-mail/senha e Google",
-    current: "Sem login: o mapa é público e abre direto na demonstração",
-  },
-  {
-    topic: "Cadastro de ponto",
-    original: "Persistido no banco e enviado para moderação",
-    current:
-      "Simulado apenas na tela desta sessão; nada é enviado nem salvo",
-  },
-  {
-    topic: "Mapa",
-    original: "Camadas CARTO com chave de API",
-    current: "OpenStreetMap, que não exige chave de API",
-  },
-  {
-    topic: "Escopo",
-    original: "Região Metropolitana de Salvador",
-    current: "Recorte visual das ilhas de calor em Salvador",
-  },
-];
-
 interface ShadowMapDashboardProps {
-  initialPoints: PointFeature[];
   initialHeatZones: HeatZone[];
 }
 
 export default function ShadowMapDashboard({
-  initialPoints,
   initialHeatZones,
 }: ShadowMapDashboardProps) {
-  const [points, setPoints] = useState(initialPoints);
-  const [filters, setFilters] = useState<FiltersState>(initialFilters);
-  const [selectedPointId, setSelectedPointId] = useState<string | null>(
-    initialPoints[0]?.id ?? null,
-  );
-  const [draftLocation, setDraftLocation] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [draftValues, setDraftValues] = useState<Partial<PointFormValues> | null>(
-    null,
-  );
-  const [aiAssisted, setAiAssisted] = useState(false);
-  const [formKey, setFormKey] = useState(0);
-  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const { pendingAction, completeAction, requestAction } = useMapGuide();
+  const { session, setSession } = useDemoSession();
+  const {
+    points,
+    filters,
+    selectedPointId,
+    draftLocation,
+    draftValues,
+    isFormOpen,
+    showSimulated,
+    isLegendExpanded,
+  } = session;
+  const mapSectionRef = useRef<HTMLElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const legendToggleRef = useRef<HTMLButtonElement>(null);
+  const focusIdRef = useRef(0);
+  const isDesktop = useDesktopLayout();
+  const isLegendOpen = isLegendExpanded ?? isDesktop;
+  const [isPanelExpanded, setIsPanelExpanded] = useState(isFormOpen);
+  const [panelFocusRequest, setPanelFocusRequest] = useState(0);
+  const [pointFocusRequest, setPointFocusRequest] =
+    useState<PointFocusRequest | null>(null);
+  const [recenterRequest, setRecenterRequest] = useState(0);
+  const [baseMapStatus, setBaseMapStatus] = useState<BaseMapStatus>("loading");
+  const guidedEntryRef = useRef(Boolean(pendingAction));
   const [isTourOpen, setIsTourOpen] = useState(false);
-  const [showSimulated, setShowSimulated] = useState(true);
   const [submitMessage, setSubmitMessage] = useState<{
     tone: "success" | "error";
     text: string;
@@ -138,10 +83,14 @@ export default function ShadowMapDashboard({
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const hasCompletedTour =
-        window.localStorage.getItem(TOUR_STORAGE_KEY) === "1";
+      let hasCompletedTour = false;
+      try {
+        hasCompletedTour = window.localStorage.getItem(TOUR_STORAGE_KEY) === "1";
+      } catch {
+        // The guide remains available when browser storage is disabled.
+      }
 
-      if (!hasCompletedTour) {
+      if (!hasCompletedTour && !guidedEntryRef.current) {
         setIsTourOpen(true);
       }
     }, 0);
@@ -153,27 +102,39 @@ export default function ShadowMapDashboard({
 
   const originPoints = showSimulated ? points : [];
 
-  const filteredPoints = originPoints.filter((point) => {
-    const matchesCity = filters.city === "all" || point.city === filters.city;
-    const matchesIssue =
-      filters.issueType === "all" || point.issueType === filters.issueType;
-    const matchesPriority =
-      filters.priority === "all" || point.priority === filters.priority;
+  const filteredPoints = useMemo(
+    () =>
+      showSimulated
+        ? points.filter((point) => {
+            const matchesCity =
+              filters.city === "all" || point.city === filters.city;
+            const matchesIssue =
+              filters.issueType === "all" ||
+              point.issueType === filters.issueType;
+            const matchesPriority =
+              filters.priority === "all" || point.priority === filters.priority;
 
-    return matchesCity && matchesIssue && matchesPriority;
-  });
+            return matchesCity && matchesIssue && matchesPriority;
+          })
+        : [],
+    [points, showSimulated, filters.city, filters.issueType, filters.priority],
+  );
 
-  const visibleHeatZones = showSimulated
-    ? initialHeatZones.filter(
-        (zone) => filters.city === "all" || zone.city === filters.city,
-      )
-    : [];
+  const visibleHeatZones = useMemo(
+    () =>
+      showSimulated
+        ? initialHeatZones.filter(
+            (zone) => filters.city === "all" || zone.city === filters.city,
+          )
+        : [],
+    [initialHeatZones, showSimulated, filters.city],
+  );
 
   const effectiveSelectedPointId = filteredPoints.some(
     (point) => point.id === selectedPointId,
   )
     ? selectedPointId
-    : filteredPoints[0]?.id ?? null;
+    : (filteredPoints[0]?.id ?? null);
 
   const selectedPoint =
     points.find((point) => point.id === effectiveSelectedPointId) ?? null;
@@ -182,7 +143,55 @@ export default function ShadowMapDashboard({
     (point) => point.priority === "critical",
   ).length;
 
-  const originLabel = showSimulated ? "simulados" : "dados ocultos";
+  const scrollToWorkspace = useCallback(() => {
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+    const navHeight =
+      document.querySelector("nav")?.getBoundingClientRect().height ?? 0;
+    window.scrollTo({
+      top: Math.max(
+        0,
+        window.scrollY + workspace.getBoundingClientRect().top - navHeight - 8,
+      ),
+    });
+  }, []);
+
+  const revealPanel = useCallback(() => {
+    setIsPanelExpanded(true);
+    setPanelFocusRequest((value) => value + 1);
+  }, []);
+
+  const selectMapPoint = useCallback(
+    (selectedPointId: string) => {
+      setSession((current) => ({ ...current, selectedPointId }));
+      setIsPanelExpanded(false);
+    },
+    [setSession],
+  );
+
+  function focusPoint(pointId: string) {
+    selectMapPoint(pointId);
+    setPointFocusRequest({ pointId, id: ++focusIdRef.current });
+    requestAnimationFrame(scrollToWorkspace);
+  }
+
+  function clearFilters() {
+    setSession((current) => ({
+      ...current,
+      filters: { city: "all", issueType: "all", priority: "all" },
+      showSimulated: true,
+    }));
+    setPointFocusRequest(null);
+    setRecenterRequest((value) => value + 1);
+    requestAnimationFrame(() =>
+      mapSectionRef.current?.focus({ preventScroll: true }),
+    );
+  }
+
+  function recenterMap() {
+    setPointFocusRequest(null);
+    setRecenterRequest((value) => value + 1);
+  }
 
   function handlePointSubmit(
     values: PointFormValues,
@@ -202,14 +211,17 @@ export default function ShadowMapDashboard({
       submittedAt: new Date().toISOString(),
     };
 
-    setPoints((current) => [created, ...current]);
-    setFilters((current) => ({ ...current, city: created.city }));
-    setShowSimulated(true);
-    setSelectedPointId(created.id);
-    setDraftLocation(null);
-    setDraftValues(null);
-    setAiAssisted(false);
-    setIsFormOpen(false);
+    setSession((current) => ({
+      ...current,
+      points: [created, ...current.points],
+      filters: { city: created.city, issueType: "all", priority: "all" },
+      showSimulated: true,
+      selectedPointId: created.id,
+      draftLocation: null,
+      draftValues: null,
+      isFormOpen: false,
+    }));
+    focusPoint(created.id);
     setSubmitMessage({
       tone: "success",
       text: "Ponto simulado adicionado ao mapa desta sessão. Nenhum dado foi salvo ou enviado.",
@@ -217,101 +229,146 @@ export default function ShadowMapDashboard({
   }
 
   function handleMapPick(location: { lat: number; lng: number }) {
-    setDraftLocation(location);
-    setIsFormOpen(true);
+    setSession((current) => ({
+      ...current,
+      draftLocation: location,
+      draftValues: {
+        ...(current.draftValues ?? createPointDraft(location)),
+        ...location,
+        city: inferCityFromCoordinates(location.lat, location.lng),
+      },
+      isFormOpen: true,
+    }));
+    revealPanel();
   }
 
-  function openManualForm() {
-    setDraftValues(null);
-    setAiAssisted(false);
-    setFormKey((value) => value + 1);
-    setIsFormOpen(true);
-  }
+  const openManualForm = useCallback(() => {
+    setSession((current) => ({
+      ...current,
+      draftValues:
+        current.draftValues ??
+        (current.filters.city === "all"
+          ? createPointDraft()
+          : createPointDraft({
+              lat: CITY_CENTERS[current.filters.city][0],
+              lng: CITY_CENTERS[current.filters.city][1],
+            })),
+      isFormOpen: true,
+    }));
+    revealPanel();
+  }, [setSession, revealPanel]);
+
+  useEffect(() => {
+    if (!pendingAction) return;
+
+    const frame = requestAnimationFrame(() => {
+      if (pendingAction.action === "new-point") {
+        if (!isFormOpen) openManualForm();
+        else revealPanel();
+        scrollToWorkspace();
+      } else {
+        scrollToWorkspace();
+        setIsPanelExpanded(false);
+        if (pendingAction.action === "show-legend") {
+          setSession((current) => ({ ...current, isLegendExpanded: true }));
+          legendToggleRef.current?.focus({ preventScroll: true });
+        } else {
+          mapSectionRef.current?.focus({ preventScroll: true });
+        }
+      }
+      completeAction(pendingAction.id);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [
+    pendingAction,
+    completeAction,
+    isFormOpen,
+    openManualForm,
+    setSession,
+    revealPanel,
+    scrollToWorkspace,
+  ]);
 
   function closeForm() {
-    setDraftLocation(null);
-    setDraftValues(null);
-    setAiAssisted(false);
-    setIsFormOpen(false);
+    setSession((current) => ({
+      ...current,
+      draftLocation: null,
+      draftValues: null,
+      isFormOpen: false,
+    }));
   }
 
   function closeTour() {
-    window.localStorage.setItem(TOUR_STORAGE_KEY, "1");
+    try {
+      window.localStorage.setItem(TOUR_STORAGE_KEY, "1");
+    } catch {
+      // Dismissing the guide must also work without browser storage.
+    }
     setIsTourOpen(false);
   }
 
   function reopenTour() {
-    window.localStorage.removeItem(TOUR_STORAGE_KEY);
-    setIsInfoOpen(false);
     setIsTourOpen(true);
   }
 
   return (
-    <main className="min-h-screen">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-4 md:px-6 md:py-6">
-        <header className="glass-panel overflow-hidden rounded-[30px] p-5 md:p-6">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl space-y-3">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="inline-flex items-center rounded-full bg-emerald-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-50">
-                  ShadowMap
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsInfoOpen(true)}
-                  className="relative z-[700] inline-flex min-h-11 items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-100/95 px-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-900 shadow-[0_0_0_0_rgba(110,231,183,0.4)] transition hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 active:scale-[0.98] motion-safe:animate-pulse"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                  Mais info
-                </button>
-              </div>
-              <div>
-                <h1 className="font-display text-3xl font-semibold tracking-tight text-emerald-950 md:text-4xl">
-                  Mapa demonstrativo de ilhas de calor em Salvador
+    <main id="conteudo-principal" tabIndex={-1} className="min-h-screen">
+      <div className="mx-auto flex w-full max-w-360 min-w-0 flex-col gap-3 px-3 py-3 sm:gap-4 sm:px-5 lg:px-6">
+        <header className="glass-panel rounded-3xl p-3 sm:p-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+            <div className="flex min-w-0 items-start justify-between gap-2 lg:flex-1 lg:items-center">
+              <div className="min-w-0">
+                <h1 className="font-display text-xl font-semibold tracking-tight text-emerald-950 sm:text-2xl">
+                  Mapa de calor urbano
                 </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-950/72 md:text-base">
-                  Amostra visual do ShadowMap AI: pontos e zonas de calor são
-                  dados SIMULADOS para demonstrar a interface, sem login e sem
-                  persistência.
+                <p className="mt-0.5 text-xs leading-4 text-emerald-950/65">
+                  Calor e arborização na Grande Salvador.
                 </p>
               </div>
+              <AboutMapPopover onOpenTour={reopenTour} />
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div
+              aria-label="Indicadores do mapa"
+              className="grid grid-cols-3 divide-x divide-emerald-950/10 rounded-xl border border-emerald-950/8 bg-white/65 py-2 lg:min-w-80 lg:shrink-0"
+            >
               <MetricCard
                 icon={MapPinned}
-                label={`Pontos (${originLabel})`}
+                label="Pontos"
                 value={String(filteredPoints.length)}
                 tone="emerald"
               />
               <MetricCard
                 icon={AlertTriangle}
-                label={`Críticos (${originLabel})`}
+                label="Críticos"
                 value={String(criticalCount)}
                 tone="amber"
               />
               <MetricCard
                 icon={Trees}
-                label="Zonas ilustrativas"
+                label="Zonas"
                 value={String(visibleHeatZones.length)}
                 tone="teal"
               />
             </div>
           </div>
+          <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] leading-4 text-amber-950">
+            <FlaskConical
+              className="mt-0.5 h-3 w-3 shrink-0"
+              aria-hidden="true"
+            />
+            <span>
+              <strong>Dados simulados.</strong> Sem medições de temperatura ou
+              relatos reais.
+            </span>
+          </p>
         </header>
-
-        <section className="rounded-[24px] border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
-          <strong>Todos os dados desta página são simulados.</strong> Os pontos
-          e as zonas de calor foram criados apenas para demonstrar a interface
-          em Salvador. Eles não são medições de temperatura, não vieram de
-          moradores e não são salvos em banco de dados.
-        </section>
 
         {submitMessage ? (
           <div
             role="status"
             className={cn(
-              "flex items-start justify-between gap-3 rounded-[24px] border px-4 py-3 text-sm",
+              "flex items-start justify-between gap-3 rounded-3xl border px-4 py-3 text-sm",
               submitMessage.tone === "success"
                 ? "border-emerald-300 bg-emerald-50 text-emerald-900"
                 : "border-rose-300 bg-rose-50 text-rose-900",
@@ -329,65 +386,152 @@ export default function ShadowMapDashboard({
           </div>
         ) : null}
 
-        <FiltersBar
-          filters={filters}
-          totalPoints={originPoints.length}
-          filteredPoints={filteredPoints.length}
-          simulatedCount={simulatedCount}
-          showSimulated={showSimulated}
-          onShowSimulatedChange={setShowSimulated}
-          onFiltersChange={setFilters}
-          onOpenForm={openManualForm}
-        />
-
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_420px]">
-          <section className="glass-panel relative min-h-[64svh] overflow-hidden rounded-[30px] p-2 md:min-h-[62vh]">
-            <DynamicMapView
-              draftLocation={draftLocation}
-              points={filteredPoints}
-              selectedPointId={effectiveSelectedPointId}
-              visibleHeatZones={visibleHeatZones}
-              onMapPick={handleMapPick}
-              onSelectPoint={setSelectedPointId}
+        {/* A barra de 64px e o intervalo de 8px completam 90vh com o mapa. */}
+        <div
+          ref={workspaceRef}
+          className="relative grid min-w-0 items-start gap-2 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]"
+        >
+          <div className="min-w-0 lg:col-span-2">
+            <FiltersBar
+              filters={filters}
+              totalPoints={originPoints.length}
+              filteredPoints={filteredPoints.length}
+              simulatedCount={simulatedCount}
+              showSimulated={showSimulated}
+              onShowSimulatedChange={(showSimulated) => {
+                setPointFocusRequest(null);
+                setSession((current) => ({ ...current, showSimulated }));
+              }}
+              onFiltersChange={(filters) => {
+                setPointFocusRequest(null);
+                setSession((current) => ({ ...current, filters }));
+              }}
+              onOpenForm={openManualForm}
+              onClearFilters={clearFilters}
             />
+          </div>
 
-            <div className="pointer-events-none absolute inset-x-3 bottom-3 z-[500] hidden md:block md:inset-x-auto md:left-3">
+          <section
+            ref={mapSectionRef}
+            tabIndex={-1}
+            aria-label="Mapa interativo"
+            className="glass-panel relative min-h-60 min-w-0 overflow-hidden rounded-[22px]"
+            style={{ height: "calc(90vh - 4.5rem)" }}
+          >
+            <div className="absolute inset-1.5 overflow-hidden rounded-2xl">
+              <DynamicMapView
+                city={filters.city}
+                draftLocation={draftLocation}
+                points={filteredPoints}
+                selectedPointId={effectiveSelectedPointId}
+                visibleHeatZones={visibleHeatZones}
+                onMapPick={handleMapPick}
+                onSelectPoint={selectMapPoint}
+                focusRequest={pointFocusRequest}
+                recenterRequest={recenterRequest}
+                onRecenter={recenterMap}
+                baseMapStatus={baseMapStatus}
+                onBaseMapStatusChange={setBaseMapStatus}
+              />
+            </div>
+
+            {filteredPoints.length === 0 ? (
+              <div
+                role="status"
+                className={cn(
+                  "absolute left-4 right-16 z-500 max-w-sm rounded-xl border border-emerald-950/10 bg-white/95 p-3 text-xs text-emerald-950 shadow-sm",
+                  baseMapStatus === "ready" ? "top-4" : "top-24",
+                )}
+              >
+                <p className="font-semibold">
+                  {showSimulated
+                    ? `Nenhum ponto para os filtros selecionados${filters.city === "all" ? "" : ` em ${filters.city}`}.`
+                    : "Dados de demonstração ocultos."}
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-2 text-[11px]">
+                  {showSimulated ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="min-h-8 rounded-lg bg-emerald-900 px-2 text-white focus-visible:outline-2 focus-visible:outline-emerald-700"
+                      >
+                        Limpar filtros
+                      </button>
+                      <button
+                        type="button"
+                        onClick={openManualForm}
+                        className="min-h-8 rounded-lg border border-emerald-950/15 px-2 text-emerald-900 focus-visible:outline-2 focus-visible:outline-emerald-700"
+                      >
+                        Novo ponto
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSession((current) => ({
+                          ...current,
+                          showSimulated: true,
+                        }))
+                      }
+                      className="min-h-8 rounded-lg bg-emerald-900 px-2 text-white focus-visible:outline-2 focus-visible:outline-emerald-700"
+                    >
+                      Mostrar dados simulados
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="map-legend-position pointer-events-none absolute bottom-3 left-3 z-500 max-w-[calc(100%-1.5rem)]">
               <Legend
+                expanded={isLegendOpen}
+                onExpandedChange={(isLegendExpanded) =>
+                  setSession((current) => ({ ...current, isLegendExpanded }))
+                }
+                toggleRef={legendToggleRef}
                 className="pointer-events-auto"
                 showSimulated={showSimulated}
               />
             </div>
           </section>
 
-          <div className="md:hidden">
-            <Legend className="max-w-none" showSimulated={showSimulated} />
-          </div>
-
-          <Sidebar
-            criticalPoints={criticalPoints}
-            draftLocation={draftLocation}
-            draftValues={draftValues}
-            aiAssisted={aiAssisted}
-            formKey={formKey}
+          <MapInfoPanel
+            expanded={isPanelExpanded}
+            onExpandedChange={setIsPanelExpanded}
+            focusRequest={panelFocusRequest}
             isFormOpen={isFormOpen}
-            selectedPoint={selectedPoint}
-            totalPoints={originPoints.length}
-            onCloseForm={closeForm}
-            onOpenForm={openManualForm}
-            onSelectPoint={setSelectedPointId}
-            onSubmitPoint={handlePointSubmit}
-          />
+            mapRef={mapSectionRef}
+            workspaceRef={workspaceRef}
+          >
+            <Sidebar
+              criticalPoints={criticalPoints}
+              draftLocation={draftLocation}
+              draftValues={draftValues}
+              isFormOpen={isFormOpen}
+              selectedPoint={selectedPoint}
+              totalPoints={originPoints.length}
+              onCloseForm={closeForm}
+              onSelectPoint={focusPoint}
+              onDraftChange={(draftValues) =>
+                setSession((current) => ({ ...current, draftValues }))
+              }
+              onSubmitPoint={handlePointSubmit}
+            />
+          </MapInfoPanel>
         </div>
       </div>
 
-      <AboutProjectModal
-        isOpen={isInfoOpen}
-        onClose={() => setIsInfoOpen(false)}
-        onOpenTour={reopenTour}
-      />
-
-      <TourModal isOpen={isTourOpen} onClose={closeTour} />
-
+      {isTourOpen ? (
+        <InitialGuide
+          onClose={closeTour}
+          onExplore={() => {
+            closeTour();
+            requestAction("show-map");
+          }}
+        />
+      ) : null}
     </main>
   );
 }
@@ -401,284 +545,24 @@ interface MetricCardProps {
 
 function MetricCard({ icon: Icon, label, value, tone }: MetricCardProps) {
   return (
-    <div
-      className={cn(
-        "card-strong rounded-[24px] px-4 py-4",
-        tone === "emerald" && "bg-emerald-50/80",
-        tone === "amber" && "bg-amber-50/85",
-        tone === "teal" && "bg-teal-50/80",
-      )}
-    >
-      <div className="flex items-center gap-3">
-        <div className="rounded-2xl bg-white/85 p-2 text-emerald-950">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-            {label}
-          </p>
-          <p className="mt-1 font-display text-2xl font-semibold text-emerald-950">
-            {value}
-          </p>
-        </div>
-      </div>
+    <div className="flex min-w-0 items-center justify-center gap-1 px-1.5 sm:gap-1.5 sm:px-2">
+      <Icon
+        aria-hidden="true"
+        className={cn(
+          "h-3.5 w-3.5 shrink-0",
+          tone === "amber"
+            ? "text-amber-700"
+            : tone === "teal"
+              ? "text-teal-700"
+              : "text-emerald-800",
+        )}
+      />
+      <strong className="font-display text-base font-semibold text-emerald-950">
+        {value}
+      </strong>
+      <span className="text-[10px] text-emerald-950/65 sm:text-[11px]">
+        {label}
+      </span>
     </div>
   );
-}
-
-function AboutProjectModal({
-  isOpen,
-  onClose,
-  onOpenTour,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onOpenTour: () => void;
-}) {
-  useOverlayBodyLock(isOpen);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-emerald-950/55 p-0 backdrop-blur-sm md:items-center md:p-6">
-      <div className="glass-panel flex h-[100svh] w-full flex-col overflow-hidden rounded-none p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:h-auto md:max-h-[88svh] md:max-w-4xl md:rounded-[28px] md:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-              Sobre a demonstração
-            </p>
-            <h2 className="mt-1 font-display text-2xl font-semibold text-emerald-950">
-              O que é esta amostra
-            </h2>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-emerald-950 transition hover:bg-white"
-            aria-label="Fechar modal"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="mt-5 flex-1 space-y-4 overflow-y-auto pr-0 md:pr-1">
-          <section className="card-strong rounded-[24px] p-4 text-sm leading-6 text-emerald-950/78">
-            <p>
-              O ShadowMap AI é um projeto de extensão da UCSAL sobre ilhas de
-              calor e arborização urbana em Salvador. Esta versão é uma{" "}
-              <strong>amostra visual</strong>: o mapa usa dados simulados e não
-              há login, cadastro real, moderação ou persistência em banco.
-            </p>
-          </section>
-
-          <section className="card-strong rounded-[24px] p-4">
-            <h3 className="font-display text-lg font-semibold text-emerald-950">
-              O que muda nesta demonstração
-            </h3>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[620px] border-collapse text-left text-sm">
-                <thead>
-                  <tr className="text-[11px] uppercase tracking-[0.14em] text-emerald-950/55">
-                    <th className="border-b border-emerald-950/10 py-2 pr-3">
-                      Tema
-                    </th>
-                    <th className="border-b border-emerald-950/10 py-2 pr-3">
-                      Versão completa
-                    </th>
-                    <th className="border-b border-emerald-950/10 py-2">
-                      Esta amostra
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="text-emerald-950/78">
-                  {comparisonRows.map((row) => (
-                    <tr key={row.topic} className="align-top">
-                      <th className="border-b border-emerald-950/10 py-3 pr-3 font-semibold text-emerald-950">
-                        {row.topic}
-                      </th>
-                      <td className="border-b border-emerald-950/10 py-3 pr-3">
-                        {row.original}
-                      </td>
-                      <td className="border-b border-emerald-950/10 py-3">
-                        {row.current}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section className="rounded-[24px] border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-            <strong>Dados marcados como SIMULADO servem apenas para demonstração.</strong>{" "}
-            Eles não foram enviados por moradores, não representam medições de
-            temperatura e não são gravados em nenhum banco de dados.
-          </section>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={onOpenTour}
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-900 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800"
-            >
-              Abrir guia do MVP
-            </button>
-            <Link
-              href="/privacidade"
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-emerald-100 px-4 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-200"
-            >
-              Política de privacidade
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TourModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  const [stepIndex, setStepIndex] = useState(0);
-
-  useOverlayBodyLock(isOpen);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const timer = window.setTimeout(() => {
-      setStepIndex(0);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  const currentStep = tourSteps[stepIndex];
-
-  return (
-    <div className="fixed inset-0 z-[1100] flex items-end justify-center bg-emerald-950/55 p-3 backdrop-blur-sm md:items-center md:p-6">
-      <div className="glass-panel flex max-h-[100svh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:max-h-[88svh] md:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-              Primeiro acesso
-            </p>
-            <h2 className="mt-1 font-display text-2xl font-semibold text-emerald-950">
-              Tour guiado do ShadowMap
-            </h2>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-emerald-950 transition hover:bg-white"
-            aria-label="Fechar guia"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="mt-4 flex gap-2">
-          {tourSteps.map((step, index) => (
-            <span
-              key={step.id}
-              className={cn(
-                "h-1.5 flex-1 rounded-full",
-                index <= stepIndex ? "bg-emerald-800" : "bg-emerald-200",
-              )}
-            />
-          ))}
-        </div>
-
-        <div className="mt-5 shrink-0 rounded-[24px] bg-white/82 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/50">
-            Etapa {stepIndex + 1} de {tourSteps.length}
-          </p>
-          <h3 className="mt-1 font-display text-xl font-semibold text-emerald-950">
-            {currentStep.title}
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-emerald-950/76">
-            {currentStep.description}
-          </p>
-        </div>
-
-        <div className="mt-4 grid gap-3 overflow-y-auto pr-0 md:pr-1">
-          {tourSteps.map((step, index) => (
-            <button
-              key={step.id}
-              type="button"
-              onClick={() => setStepIndex(index)}
-              className={cn(
-                "rounded-[20px] border px-4 py-4 text-left transition",
-                stepIndex === index
-                  ? "border-emerald-400 bg-emerald-50"
-                  : "border-emerald-950/10 bg-white/70 hover:bg-white",
-              )}
-            >
-              <p className="font-semibold text-emerald-950">{step.title}</p>
-              <p className="mt-1 text-sm leading-6 text-emerald-950/72">
-                {step.description}
-              </p>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setStepIndex((value) => Math.max(0, value - 1))}
-              className="inline-flex h-11 items-center gap-2 rounded-2xl border border-emerald-950/10 bg-white/80 px-4 text-sm font-semibold text-emerald-950 disabled:opacity-40"
-              disabled={stepIndex === 0}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Voltar
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setStepIndex((value) =>
-                  Math.min(tourSteps.length - 1, value + 1),
-                )
-              }
-              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-emerald-900 px-4 text-sm font-semibold text-white disabled:opacity-40"
-              disabled={stepIndex === tourSteps.length - 1}
-            >
-              Próximo
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-100 px-4 text-sm font-semibold text-emerald-900"
-          >
-            Encerrar guia
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function useOverlayBodyLock(isOpen: boolean) {
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isOpen]);
 }

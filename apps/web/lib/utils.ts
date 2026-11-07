@@ -98,7 +98,7 @@ const SHADE_DEFICIT_SCORES: Record<ShadeLevel, number> = {
   good: 1,
 };
 
-const CITY_CENTERS: Record<City, [number, number]> = {
+export const CITY_CENTERS: Record<City, [number, number]> = {
   Salvador: [-12.9718, -38.5011],
   Camaçari: [-12.6991, -38.3261],
   "Lauro de Freitas": [-12.8941, -38.3214],

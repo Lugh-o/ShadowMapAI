@@ -25,7 +25,11 @@
 
 html {
   background:
-    radial-gradient(circle at top left, rgba(78, 147, 111, 0.2), transparent 32%),
+    radial-gradient(
+      circle at top left,
+      rgba(78, 147, 111, 0.2),
+      transparent 32%
+    ),
     linear-gradient(145deg, #eef4ea 0%, #f8f6ef 48%, #eef3f0 100%);
 }
 
@@ -34,8 +38,16 @@ body {
   background: var(--background);
   color: var(--foreground);
   background:
-    radial-gradient(circle at top left, rgba(255, 210, 113, 0.28), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(41, 121, 91, 0.18), transparent 30%),
+    radial-gradient(
+      circle at top left,
+      rgba(255, 210, 113, 0.28),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(41, 121, 91, 0.18),
+      transparent 30%
+    ),
     linear-gradient(160deg, #edf3ed 0%, #f9f6ee 52%, #eef5f2 100%);
   font-family: var(--font-space-grotesk), sans-serif;
 }
@@ -49,6 +61,50 @@ textarea {
 
 ::selection {
   background: rgba(16, 185, 129, 0.24);
+}
+
+#conteudo-principal {
+  scroll-margin-top: 4.5rem;
+}
+
+@media (height < 32rem) {
+  .initial-guide-header {
+    padding-top: 0.5rem;
+  }
+
+  .initial-guide-title {
+    font-size: 1.125rem;
+  }
+
+  .initial-guide-steps {
+    margin-block: 0.5rem;
+  }
+
+  .initial-guide-step-button {
+    min-height: 2.75rem;
+    gap: 0.25rem;
+  }
+
+  .initial-guide-current-step {
+    padding: 0.75rem;
+  }
+
+  .initial-guide-footer {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+  }
+
+  .initial-guide-reopen,
+  .initial-guide-map-preview {
+    display: none;
+  }
+}
+
+@media (height < 32rem) and (width >= 30rem) {
+  .initial-guide-step-button {
+    flex-direction: row;
+  }
 }
 
 .leaflet-container {
@@ -79,12 +135,43 @@ textarea {
   margin: 14px 16px;
 }
 
+.point-popup .leaflet-popup-content {
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6, 78, 59, 0.35) transparent;
+}
+
+.point-popup .leaflet-popup-content p {
+  margin: 0;
+}
+
+.leaflet-container .point-popup a.leaflet-popup-close-button {
+  top: 2px;
+  right: 2px;
+  width: 40px;
+  height: 40px;
+  font-size: 28px;
+  line-height: 40px;
+}
+
 .leaflet-tooltip {
   border: 0;
   border-radius: 999px;
   background: rgba(24, 49, 39, 0.9);
   color: #f5f8f4;
   box-shadow: var(--shadow);
+}
+
+.leaflet-tooltip.heat-zone-tooltip {
+  width: max-content;
+  max-width: min(240px, calc(100vw - 80px));
+  padding: 10px 12px;
+  border-radius: 12px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
 }
 
 .leaflet-pane,
@@ -105,4 +192,113 @@ textarea {
   background: var(--card-strong);
   border: 1px solid rgba(24, 49, 39, 0.08);
   box-shadow: var(--shadow);
+}
+
+@media (width < 64rem) {
+  .map-info-panel {
+    position: fixed;
+    z-index: 650;
+    left: var(--map-panel-left, 20px);
+    right: var(--map-panel-right, 20px);
+    bottom: var(--map-panel-bottom, 10px);
+    height: var(--map-panel-height, 50px);
+    visibility: var(--map-panel-visibility, hidden);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: rgba(247, 251, 246, 0.97);
+    box-shadow: 0 -6px 28px rgba(27, 56, 44, 0.16);
+    backdrop-filter: blur(16px);
+  }
+
+  .map-info-panel .map-sidebar {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .map-info-panel :is(input, select, textarea) {
+    font-size: 16px;
+  }
+
+  .map-legend-position {
+    bottom: var(--map-overlay-bottom, 72px);
+  }
+
+  .map-legend-position > aside {
+    max-height: var(--map-legend-max-height, 180px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .assistant-launcher[aria-expanded="false"] {
+    bottom: calc(
+      env(safe-area-inset-bottom) + 1rem + var(--map-chat-offset, 0px)
+    );
+  }
+}
+
+@keyframes assistant-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes assistant-message-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .assistant-chat-panel {
+    animation: assistant-panel-in 180ms ease-out both;
+  }
+
+  .assistant-message-enter {
+    animation: assistant-message-in 160ms ease-out both;
+  }
+}
+
+.panel-scroll-viewport {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.panel-scroll-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.panel-scroll-thumb {
+  background: rgba(6, 78, 59, 0.28);
+  box-shadow: 0 1px 5px rgba(6, 78, 59, 0.12);
+  backdrop-filter: blur(4px);
+  transition: background-color 150ms ease;
+}
+
+.panel-scroll-track:hover .panel-scroll-thumb,
+.panel-scroll-track:focus-visible .panel-scroll-thumb {
+  background: rgba(6, 78, 59, 0.48);
+}
+
+.panel-scroll-track[data-dragging="true"] .panel-scroll-thumb {
+  background: rgba(6, 78, 59, 0.62);
+}
+
+@media (forced-colors: active) {
+  .panel-scroll-thumb {
+    background: ButtonText;
+  }
 }

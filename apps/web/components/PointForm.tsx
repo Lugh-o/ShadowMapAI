@@ -1,18 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import {
   CITY_OPTIONS,
-  DEFAULT_MAP_CENTER,
+  derivePriority,
   getHeatLevelLabel,
   getIssueTypeLabel,
   getPriorityLabel,
   getShadeLevelLabel,
   HEAT_LEVEL_OPTIONS,
-  inferCityFromCoordinates,
   ISSUE_OPTIONS,
-  PRIORITY_OPTIONS,
   SHADE_LEVEL_OPTIONS,
 } from "@/lib/utils";
 import type {
@@ -20,127 +16,81 @@ import type {
   HeatLevel,
   IssueType,
   PointFormValues,
-  Priority,
   ShadeLevel,
 } from "@shadowmap/types";
 
 interface PointFormProps {
   draftLocation: { lat: number; lng: number } | null;
-  initialValues?: Partial<PointFormValues>;
+  values: PointFormValues;
+  onValuesChange: (values: PointFormValues) => void;
   aiAssisted?: boolean;
   onCancel: () => void;
   onSubmit: (values: PointFormValues, aiAssisted: boolean) => void;
 }
 
-function createInitialValues(
-  draftLocation: { lat: number; lng: number } | null,
-  initialValues?: Partial<PointFormValues>,
-): PointFormValues {
-  const values: PointFormValues = {
-    city: draftLocation
-      ? inferCityFromCoordinates(draftLocation.lat, draftLocation.lng)
-      : "Salvador",
-    neighborhood: "",
-    lat: draftLocation?.lat ?? DEFAULT_MAP_CENTER[0],
-    lng: draftLocation?.lng ?? DEFAULT_MAP_CENTER[1],
-    heatLevel: "high",
-    shadeLevel: "low",
-    issueType: "low_tree_cover",
-    description: "",
-    priority: "high",
-  };
-
-  if (initialValues) {
-    for (const [key, value] of Object.entries(initialValues)) {
-      if (value !== undefined) {
-        (values as Record<string, unknown>)[key] = value;
-      }
-    }
-  }
-
-  if (draftLocation) {
-    values.lat = draftLocation.lat;
-    values.lng = draftLocation.lng;
-    values.city = inferCityFromCoordinates(draftLocation.lat, draftLocation.lng);
-  }
-
-  return values;
-}
-
 const fieldClassName =
-  "mt-2 h-11 w-full rounded-2xl border border-emerald-950/10 bg-white/80 px-4 text-sm text-emerald-950 outline-none transition focus:border-emerald-700 focus:bg-white";
+  "mt-1 h-9 w-full min-w-0 rounded-lg border border-emerald-950/10 bg-white/80 px-2 text-sm text-emerald-950 outline-none transition focus:border-emerald-700 focus:bg-white";
 
 const textAreaClassName =
-  "mt-2 min-h-28 w-full rounded-2xl border border-emerald-950/10 bg-white/80 px-4 py-3 text-sm text-emerald-950 outline-none transition focus:border-emerald-700 focus:bg-white";
+  "mt-1 min-h-20 w-full rounded-lg border border-emerald-950/10 bg-white/80 p-2 text-sm text-emerald-950 outline-none transition focus:border-emerald-700 focus:bg-white";
 
 export default function PointForm({
   draftLocation,
-  initialValues,
+  values,
+  onValuesChange,
   aiAssisted = false,
   onCancel,
   onSubmit,
 }: PointFormProps) {
-  const [values, setValues] = useState<PointFormValues>(() =>
-    createInitialValues(draftLocation, initialValues),
-  );
-
-  useEffect(() => {
-    if (!draftLocation) return;
-
-    const timer = window.setTimeout(() => {
-      setValues((currentValues) => ({
-        ...currentValues,
-        lat: draftLocation.lat,
-        lng: draftLocation.lng,
-        city: inferCityFromCoordinates(draftLocation.lat, draftLocation.lng),
-      }));
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [draftLocation]);
+  const priority = derivePriority(values.heatLevel, values.shadeLevel);
 
   function updateField(field: "city", value: City): void;
   function updateField(field: "heatLevel", value: HeatLevel): void;
   function updateField(field: "shadeLevel", value: ShadeLevel): void;
   function updateField(field: "issueType", value: IssueType): void;
-  function updateField(field: "priority", value: Priority): void;
   function updateField(field: "lat" | "lng", value: number): void;
-  function updateField(field: "neighborhood" | "description", value: string): void;
+  function updateField(
+    field: "neighborhood" | "description",
+    value: string,
+  ): void;
   function updateField(field: keyof PointFormValues, value: string | number) {
-    setValues((currentValues) => ({
-      ...currentValues,
+    const nextValues = {
+      ...values,
       [field]: value,
-    }));
+    };
+    onValuesChange({
+      ...nextValues,
+      priority: derivePriority(nextValues.heatLevel, nextValues.shadeLevel),
+    });
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit(values, aiAssisted);
+    onSubmit({ ...values, priority }, aiAssisted);
   }
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
+    <form className="space-y-2.5 text-sm" onSubmit={handleSubmit}>
       {aiAssisted ? (
-        <div className="rounded-[22px] border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs leading-4 text-amber-950">
           Sugestão da IA. Revise os campos antes de salvar. A prioridade é
           calculada por uma regra fixa, não pela IA.
           {!draftLocation ? " Clique no mapa para marcar o local." : ""}
         </div>
       ) : null}
 
-      <div className="rounded-[22px] border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-        Este formulário é apenas uma simulação. Ao concluir, o ponto aparece no
-        mapa desta sessão, mas nenhum dado é gravado ou enviado.
+      <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs leading-4 text-amber-950">
+        Simulação: o ponto aparece nesta sessão, sem gravar ou enviar dados.
       </div>
 
-      <div className="rounded-[22px] bg-emerald-50 px-4 py-3 text-sm text-emerald-950/72">
+      <p className="text-xs leading-4 text-emerald-950/65">
         {draftLocation
-          ? "Coordenadas capturadas pelo clique no mapa. Você pode ajustar manualmente, se necessário."
-          : "Abra o formulário livremente ou clique no mapa para preencher latitude e longitude automaticamente."}
-      </div>
+          ? "Coordenadas capturadas no mapa; ajuste se necessário."
+          : "Clique no mapa para preencher as coordenadas ou edite os campos."}
+      </p>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="text-sm font-medium text-emerald-950">
+      <div className="grid grid-cols-2 gap-2">
+        <label className="min-w-0 text-sm font-medium text-emerald-950">
           Cidade
           <select
             className={fieldClassName}
@@ -157,25 +107,27 @@ export default function PointForm({
           </select>
         </label>
 
-        <label className="text-sm font-medium text-emerald-950">
+        <label className="min-w-0 text-sm font-medium text-emerald-950">
           Bairro
           <input
             required
             className={fieldClassName}
             placeholder="Ex.: Itapuã"
             value={values.neighborhood}
-            onChange={(event) => updateField("neighborhood", event.target.value)}
+            onChange={(event) =>
+              updateField("neighborhood", event.target.value)
+            }
           />
         </label>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="text-sm font-medium text-emerald-950">
+      <div className="grid grid-cols-2 gap-2">
+        <label className="min-w-0 text-sm font-medium text-emerald-950">
           Latitude
           <input
             required
             type="number"
-            step="0.0001"
+            step="0.000001"
             className={fieldClassName}
             value={values.lat}
             onChange={(event) =>
@@ -184,12 +136,12 @@ export default function PointForm({
           />
         </label>
 
-        <label className="text-sm font-medium text-emerald-950">
+        <label className="min-w-0 text-sm font-medium text-emerald-950">
           Longitude
           <input
             required
             type="number"
-            step="0.0001"
+            step="0.000001"
             className={fieldClassName}
             value={values.lng}
             onChange={(event) =>
@@ -199,8 +151,8 @@ export default function PointForm({
         </label>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="text-sm font-medium text-emerald-950">
+      <div className="grid grid-cols-2 gap-2">
+        <label className="min-w-0 text-sm font-medium text-emerald-950">
           Tipo de ocorrência
           <select
             className={fieldClassName}
@@ -217,26 +169,19 @@ export default function PointForm({
           </select>
         </label>
 
-        <label className="text-sm font-medium text-emerald-950">
-          Prioridade
-          <select
-            className={fieldClassName}
-            value={values.priority}
-            onChange={(event) =>
-              updateField("priority", event.target.value as Priority)
-            }
+        <div className="min-w-0 text-sm font-medium text-emerald-950">
+          <p id="point-priority-label">Prioridade calculada</p>
+          <output
+            aria-labelledby="point-priority-label"
+            className="mt-1 flex h-9 items-center rounded-lg border border-emerald-950/10 bg-emerald-50 px-2 font-semibold text-emerald-900"
           >
-            {PRIORITY_OPTIONS.map((priority) => (
-              <option key={priority} value={priority}>
-                {getPriorityLabel(priority)}
-              </option>
-            ))}
-          </select>
-        </label>
+            {getPriorityLabel(priority)}
+          </output>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="text-sm font-medium text-emerald-950">
+      <div className="grid grid-cols-2 gap-2">
+        <label className="min-w-0 text-sm font-medium text-emerald-950">
           Nível de calor
           <select
             className={fieldClassName}
@@ -253,7 +198,7 @@ export default function PointForm({
           </select>
         </label>
 
-        <label className="text-sm font-medium text-emerald-950">
+        <label className="min-w-0 text-sm font-medium text-emerald-950">
           Nível de sombra
           <select
             className={fieldClassName}
@@ -271,6 +216,10 @@ export default function PointForm({
         </label>
       </div>
 
+      <p className="text-xs leading-4 text-emerald-950/65">
+        A prioridade é calculada automaticamente pelos níveis de calor e sombra.
+      </p>
+
       <label className="block text-sm font-medium text-emerald-950">
         Descrição
         <textarea
@@ -282,19 +231,19 @@ export default function PointForm({
         />
       </label>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
         <button
           type="submit"
-          className="inline-flex h-12 items-center justify-center rounded-2xl bg-emerald-900 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800"
+          className="inline-flex min-h-9 items-center justify-center rounded-lg bg-emerald-900 px-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
         >
-          Adicionar ponto simulado
+          Adicionar ponto
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex h-12 items-center justify-center rounded-2xl border border-emerald-950/10 bg-white/75 px-5 text-sm font-semibold text-emerald-950 transition hover:bg-white"
+          className="inline-flex min-h-9 items-center justify-center rounded-lg border border-emerald-950/10 bg-white/75 px-2 text-sm font-semibold text-emerald-950 transition hover:bg-white"
         >
-          Fechar formulário
+          Cancelar
         </button>
       </div>
     </form>

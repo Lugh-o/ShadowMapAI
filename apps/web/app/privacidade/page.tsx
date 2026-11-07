@@ -10,7 +10,11 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8 md:px-6 md:py-12">
+    <main
+      id="conteudo-principal"
+      tabIndex={-1}
+      className="mx-auto w-full max-w-4xl px-4 py-8 md:px-6 md:py-12"
+    >
       <Link
         href="/"
         className="inline-flex min-h-10 items-center gap-2 rounded-full bg-emerald-100 px-4 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-200"
@@ -53,10 +57,11 @@ export default function PrivacyPage() {
 
         <Section title="Cadastro de ponto">
           <p>
-            O formulário de cadastro é uma simulação. Ao concluir, o ponto
-            aparece apenas no estado local da página, durante a sessão atual do
-            navegador. Nada é enviado para um servidor, gravado em banco de
-            dados ou compartilhado com terceiros.
+            O formulário de cadastro é uma simulação. Ao concluir, o ponto fica
+            disponível no mapa e no painel enquanto você navega pela
+            demonstração. Ao recarregar a página, os pontos adicionados e os
+            rascunhos são descartados. Nada é enviado para um servidor, gravado
+            em banco de dados ou compartilhado com terceiros.
           </p>
         </Section>
 

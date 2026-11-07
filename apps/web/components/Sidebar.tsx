@@ -1,4 +1,7 @@
-import { Flame, MapPin, Plus, Trees } from "lucide-react";
+"use client";
+
+import { ArrowLeft, Flame, MapPin } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 import PointForm from "@/components/PointForm";
 import {
@@ -14,15 +17,14 @@ interface SidebarProps {
   selectedPoint: PointFeature | null;
   criticalPoints: PointFeature[];
   draftLocation: { lat: number; lng: number } | null;
-  draftValues?: Partial<PointFormValues> | null;
+  draftValues: PointFormValues | null;
   aiAssisted?: boolean;
-  formKey?: string | number;
   totalPoints: number;
   isFormOpen: boolean;
-  onOpenForm: () => void;
   onCloseForm: () => void;
   onSelectPoint: (pointId: string) => void;
   onSubmitPoint: (values: PointFormValues, aiAssisted: boolean) => void;
+  onDraftChange: (values: PointFormValues) => void;
 }
 
 export default function Sidebar({
@@ -31,207 +33,187 @@ export default function Sidebar({
   draftLocation,
   draftValues,
   aiAssisted = false,
-  formKey,
   totalPoints,
   isFormOpen,
-  onOpenForm,
   onCloseForm,
   onSelectPoint,
   onSubmitPoint,
+  onDraftChange,
 }: SidebarProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const previousModeRef = useRef(false);
+
+  useEffect(() => {
+    if (previousModeRef.current === isFormOpen) return;
+    previousModeRef.current = isFormOpen;
+
+    const frame = requestAnimationFrame(() => {
+      if (!window.matchMedia("(min-width: 64rem)").matches) return;
+      const heading = headingRef.current;
+      if (!heading) return;
+      heading.focus({ preventScroll: true });
+
+      heading.scrollIntoView({ block: "nearest" });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [isFormOpen]);
+
   return (
-    <aside className="glass-panel flex h-full flex-col gap-4 rounded-[30px] p-4 md:p-5">
-      <section className="card-strong rounded-[24px] p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-              Painel demonstrativo
-            </p>
-            <h2 className="mt-1 font-display text-2xl font-semibold text-emerald-950">
-              Amostra de dados
-            </h2>
-          </div>
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-900">
-            {totalPoints} simulados
-          </span>
-        </div>
-
-        <p className="mt-3 text-sm leading-6 text-emerald-950/72">
-          Use o mapa para explorar zonas de calor, selecionar pontos e simular o
-          cadastro de uma nova ocorrência. Os dados são ilustrativos e nada é
-          salvo.
-        </p>
-      </section>
-
-      <section className="card-strong rounded-[24px] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-              Detalhes do ponto
-            </p>
-            <h3 className="mt-1 font-display text-xl font-semibold text-emerald-950">
-              {selectedPoint ? selectedPoint.neighborhood : "Nenhum ponto ativo"}
-            </h3>
-            {selectedPoint?.dataOrigin === "simulated" ? (
-              <span className="mt-2 inline-flex rounded-full bg-slate-200 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700">
-                Simulado
-              </span>
-            ) : null}
-          </div>
-
-          <div className="rounded-2xl bg-emerald-50 p-2 text-emerald-900">
-            <MapPin className="h-5 w-5" />
-          </div>
-        </div>
-
-        {selectedPoint ? (
-          <div className="mt-4 space-y-4">
-            <div className="grid gap-2 text-sm text-emerald-950/78">
-              <InfoBadge label="Cidade" value={selectedPoint.city} />
-              <InfoBadge
-                label="Ocorrência"
-                value={getIssueTypeLabel(selectedPoint.issueType)}
-              />
-              <InfoBadge
-                label="Prioridade"
-                value={getPriorityLabel(selectedPoint.priority)}
-              />
-              <InfoBadge
-                label="Calor"
-                value={getHeatLevelLabel(selectedPoint.heatLevel)}
-              />
-              <InfoBadge
-                label="Sombra"
-                value={getShadeLevelLabel(selectedPoint.shadeLevel)}
-              />
-              <InfoBadge
-                label="Coordenadas"
-                value={formatCoordinates(selectedPoint.lat, selectedPoint.lng)}
-              />
-            </div>
-
-            <p className="rounded-[20px] bg-white/75 px-4 py-3 text-sm leading-6 text-emerald-950/78">
-              {selectedPoint.description}
-            </p>
-          </div>
-        ) : (
-          <p className="mt-4 rounded-[20px] bg-white/75 px-4 py-3 text-sm leading-6 text-emerald-950/72">
-            Selecione um marcador no mapa para ver o contexto do ponto
-            registrado.
-          </p>
-        )}
-      </section>
-
-      <section className="card-strong rounded-[24px] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-              Cadastro simulado
-            </p>
-            <h3 className="mt-1 font-display text-xl font-semibold text-emerald-950">
-              Novo ponto
-            </h3>
-          </div>
-
-          {!isFormOpen && (
+    <aside className="map-sidebar glass-panel flex min-w-0 flex-col gap-2 rounded-[22px] p-2.5">
+      <header className="hidden px-3 py-2 lg:block">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2
+            ref={headingRef}
+            tabIndex={-1}
+            className="font-display text-sm font-semibold text-emerald-950 outline-none"
+          >
+            {isFormOpen ? "Novo ponto simulado" : "Amostra de dados"}
+          </h2>
+          {isFormOpen ? (
             <button
               type="button"
-              onClick={onOpenForm}
-              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
+              onClick={onCloseForm}
+              aria-label="Voltar à exploração"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-emerald-950 transition hover:bg-emerald-100"
             >
-              <Plus className="h-4 w-4" />
-              Abrir
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              Voltar
             </button>
+          ) : (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-900">
+              {totalPoints} simulados
+            </span>
           )}
         </div>
-
-        <p className="mt-3 rounded-[18px] border border-amber-300 bg-amber-50 px-4 py-2 text-xs leading-5 text-amber-950">
-          Cadastro de demonstração: o ponto aparece apenas nesta sessão do
-          navegador e não é enviado para nenhum servidor.
-        </p>
-
-        {draftLocation ? (
-          <p className="mt-3 rounded-[20px] bg-amber-50 px-4 py-3 text-sm text-amber-950/82">
-            Coordenada selecionada no mapa:{" "}
-            {formatCoordinates(draftLocation.lat, draftLocation.lng)}
+        {!isFormOpen ? (
+          <p className="mt-1 text-xs leading-4 text-emerald-950/65">
+            Selecione um ponto no mapa para ver os detalhes.
           </p>
         ) : null}
+      </header>
 
-        <div className="mt-4">
-          {isFormOpen ? (
+      {isFormOpen ? (
+        <section className="card-strong rounded-2xl p-3">
+          {draftValues ? (
             <PointForm
-              key={formKey ?? "form"}
               draftLocation={draftLocation}
-              initialValues={draftValues ?? undefined}
+              values={draftValues}
+              onValuesChange={onDraftChange}
               aiAssisted={aiAssisted}
               onCancel={onCloseForm}
               onSubmit={onSubmitPoint}
             />
-          ) : (
-            <div className="rounded-[20px] bg-white/75 px-4 py-4 text-sm leading-6 text-emerald-950/72">
-              Clique em <strong>Simular novo ponto</strong> ou selecione
-              qualquer local no mapa para preencher latitude e longitude
-              automaticamente.
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="card-strong rounded-[24px] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-950/55">
-              Resumo prioritário
-            </p>
-            <h3 className="mt-1 font-display text-xl font-semibold text-emerald-950">
-              Pontos mais críticos
-            </h3>
-          </div>
-          <div className="flex gap-2 text-emerald-900">
-            <Flame className="h-5 w-5" />
-            <Trees className="h-5 w-5" />
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          {criticalPoints.length ? (
-            criticalPoints.map((point) => (
-              <button
-                key={point.id}
-                type="button"
-                onClick={() => onSelectPoint(point.id)}
-                className="w-full rounded-[20px] bg-white/78 px-4 py-4 text-left transition hover:bg-white"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-emerald-950">
-                      {point.neighborhood}
-                    </p>
-                    <p className="text-xs text-emerald-950/55">{point.city}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
-                      {getPriorityLabel(point.priority)}
-                    </span>
-                    {point.dataOrigin === "simulated" ? (
-                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700">
-                        Simulado
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-                <p className="mt-3 text-sm text-emerald-950/75">
-                  {getIssueTypeLabel(point.issueType)}
+          ) : null}
+        </section>
+      ) : (
+        <>
+          <section className="card-strong rounded-2xl p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-950/55">
+                  Detalhes do ponto
                 </p>
-              </button>
-            ))
-          ) : (
-            <div className="rounded-[20px] bg-white/75 px-4 py-4 text-sm text-emerald-950/72">
-              Nenhum ponto encontrado com os filtros atuais.
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <h3 className="font-display text-base font-semibold leading-5 text-emerald-950">
+                    {selectedPoint
+                      ? selectedPoint.neighborhood
+                      : "Nenhum ponto ativo"}
+                  </h3>
+                  {selectedPoint?.dataOrigin === "simulated" ? (
+                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                      Simulado
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="shrink-0 rounded-lg bg-emerald-50 p-1.5 text-emerald-900">
+                <MapPin className="h-4 w-4" />
+              </div>
             </div>
-          )}
-        </div>
-      </section>
+
+            {selectedPoint ? (
+              <div className="mt-2 space-y-2">
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl bg-emerald-50/65 p-2.5 text-emerald-950/78">
+                  <InfoBadge label="Cidade" value={selectedPoint.city} />
+                  <InfoBadge
+                    label="Ocorrência"
+                    value={getIssueTypeLabel(selectedPoint.issueType)}
+                  />
+                  <InfoBadge
+                    label="Prioridade"
+                    value={getPriorityLabel(selectedPoint.priority)}
+                  />
+                  <InfoBadge
+                    label="Calor"
+                    value={getHeatLevelLabel(selectedPoint.heatLevel)}
+                  />
+                  <InfoBadge
+                    label="Sombra"
+                    value={getShadeLevelLabel(selectedPoint.shadeLevel)}
+                  />
+                  <InfoBadge
+                    label="Coordenadas"
+                    value={formatCoordinates(
+                      selectedPoint.lat,
+                      selectedPoint.lng,
+                    )}
+                  />
+                </dl>
+
+                <p className="text-xs leading-4.5 text-emerald-950/78">
+                  {selectedPoint.description}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs leading-4 text-emerald-950/72">
+                Selecione um marcador para ver suas informações.
+              </p>
+            )}
+          </section>
+
+          <section className="card-strong rounded-2xl p-3">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-display text-sm font-semibold text-emerald-950">
+                Pontos mais críticos
+              </h3>
+              <Flame className="h-4 w-4 shrink-0 text-emerald-900" />
+            </div>
+
+            <div className="mt-1 divide-y divide-emerald-950/10">
+              {criticalPoints.length ? (
+                criticalPoints.map((point) => (
+                  <button
+                    key={point.id}
+                    type="button"
+                    aria-pressed={selectedPoint?.id === point.id}
+                    onClick={() => onSelectPoint(point.id)}
+                    className="w-full rounded-lg px-1 py-2 text-left transition hover:bg-emerald-50 aria-pressed:bg-emerald-50"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="min-w-0 text-xs font-semibold leading-4 text-emerald-950">
+                        {point.neighborhood}
+                      </p>
+                      <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                        {getPriorityLabel(point.priority)}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] leading-4 text-emerald-950/65">
+                      {point.city} · {getIssueTypeLabel(point.issueType)}
+                      {point.dataOrigin === "simulated" ? " · Simulado" : ""}
+                    </p>
+                  </button>
+                ))
+              ) : (
+                <div className="py-2 text-xs leading-4 text-emerald-950/72">
+                  Nenhum ponto encontrado com os filtros atuais.
+                </div>
+              )}
+            </div>
+          </section>
+        </>
+      )}
     </aside>
   );
 }
@@ -243,11 +225,11 @@ interface InfoBadgeProps {
 
 function InfoBadge({ label, value }: InfoBadgeProps) {
   return (
-    <div className="rounded-[18px] bg-white/78 px-4 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-emerald-950/45">
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-medium text-emerald-950">{value}</p>
+    <div className="min-w-0">
+      <dt className="text-[10px] font-semibold text-emerald-950/55">{label}</dt>
+      <dd className="mt-0.5 break-words text-xs font-medium leading-4 text-emerald-950">
+        {value}
+      </dd>
     </div>
   );
 }

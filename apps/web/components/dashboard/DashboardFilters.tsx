@@ -1,21 +1,16 @@
-import Link from "next/link";
+"use client";
 
-import { CITY_OPTIONS } from "@/lib/utils";
-import type {
-  DashboardOrigin,
-  DashboardParams,
-  DashboardPeriod,
-} from "@/lib/dashboard";
-import type { City } from "@shadowmap/types";
+import { Filter, FlaskConical } from "lucide-react";
+import type { ReactNode } from "react";
+
+import { CITY_OPTIONS, cn } from "@/lib/utils";
+import type { DashboardParams, DashboardPeriod } from "@/lib/dashboard";
 
 interface DashboardFiltersProps {
   filters: DashboardParams;
+  filteredPoints: number;
+  totalPoints: number;
 }
-
-const originOptions: Array<{ value: DashboardOrigin; label: string }> = [
-  { value: "collected", label: "Coletados" },
-  { value: "all", label: "Coletados + simulados" },
-];
 
 const periodOptions: Array<{ value: DashboardPeriod; label: string }> = [
   { value: 7, label: "7 dias" },
@@ -23,106 +18,116 @@ const periodOptions: Array<{ value: DashboardPeriod; label: string }> = [
   { value: "all", label: "Tudo" },
 ];
 
-export default function DashboardFilters({ filters }: DashboardFiltersProps) {
-  function href(updates: Partial<DashboardParams>): string {
+export default function DashboardFilters({
+  filters,
+  filteredPoints,
+  totalPoints,
+}: DashboardFiltersProps) {
+  function updateFilters(updates: Partial<DashboardParams>) {
     const next = { ...filters, ...updates };
-    const params = new URLSearchParams();
-
-    if (next.origin !== "collected") params.set("origin", next.origin);
-    if (next.city !== "all") params.set("city", next.city);
-    if (next.days !== "all") params.set("days", String(next.days));
-
-    const query = params.toString();
-
-    return query ? `/dashboard?${query}` : "/dashboard";
+    if (next.city === filters.city && next.days === filters.days) return;
+    const params = new URLSearchParams({
+      city: next.city,
+      days: String(next.days),
+    });
+    window.history.pushState(null, "", `?${params}`);
   }
 
   return (
-    <section className="glass-panel rounded-[28px] p-4 md:p-5">
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_0.8fr]">
-        <FilterGroup label="Origem dos dados">
-          {originOptions.map((option) => (
-            <FilterLink
-              key={option.value}
-              href={href({ origin: option.value })}
-              active={filters.origin === option.value}
-            >
-              {option.label}
-            </FilterLink>
-          ))}
-        </FilterGroup>
+    <section
+      aria-label="Filtros do painel"
+      className="glass-panel m-0 flex h-16 min-w-0 items-center overflow-x-auto overflow-y-hidden rounded-2xl p-1.25 text-sm scrollbar-thin"
+    >
+      <div className="flex min-h-11.5 w-max min-w-full shrink-0 flex-nowrap items-center whitespace-nowrap">
+        <div className="flex shrink-0 items-center justify-center p-1.25">
+          <Filter aria-hidden="true" className="h-4 w-4 text-emerald-950/60" />
+        </div>
 
-        <FilterGroup label="Cidade">
-          <FilterLink
-            href={href({ city: "all" })}
+        <div
+          role="group"
+          aria-label="Cidade"
+          className="flex shrink-0 items-center gap-1.5 p-1.25 text-xs"
+        >
+          <span className="mr-1 text-[11px] text-emerald-950/55">Cidade</span>
+          <FilterButton
             active={filters.city === "all"}
+            onClick={() => updateFilters({ city: "all" })}
           >
             Todas
-          </FilterLink>
-          {CITY_OPTIONS.map((city: City) => (
-            <FilterLink
+          </FilterButton>
+          {CITY_OPTIONS.map((city) => (
+            <FilterButton
               key={city}
-              href={href({ city })}
               active={filters.city === city}
+              onClick={() => updateFilters({ city })}
             >
               {city}
-            </FilterLink>
+            </FilterButton>
           ))}
-        </FilterGroup>
+        </div>
 
-        <FilterGroup label="Período">
+        <div
+          role="group"
+          aria-label="Período"
+          className="flex shrink-0 items-center gap-1.5 border-l border-emerald-950/10 p-1.25 pl-2.5 text-xs"
+        >
+          <span className="mr-1 text-[11px] text-emerald-950/55">Período</span>
           {periodOptions.map((option) => (
-            <FilterLink
+            <FilterButton
               key={String(option.value)}
-              href={href({ days: option.value })}
               active={filters.days === option.value}
+              onClick={() => updateFilters({ days: option.value })}
             >
               {option.label}
-            </FilterLink>
+            </FilterButton>
           ))}
-        </FilterGroup>
+        </div>
+
+        <span className="flex min-h-11.5 shrink-0 items-center gap-1.25 p-1.25 text-xs text-emerald-950/78">
+          <FlaskConical
+            aria-hidden="true"
+            className="h-3.5 w-3.5 text-emerald-950/60"
+          />
+          Dados simulados
+        </span>
+
+        <div
+          className="shrink-0 self-center p-1.25 text-xs text-emerald-950/65"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <strong className="font-semibold text-emerald-950">
+            {filteredPoints}
+          </strong>{" "}
+          / {totalPoints} pontos
+        </div>
       </div>
     </section>
   );
 }
 
-function FilterGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-950/55">
-        {label}
-      </p>
-      <div className="mt-2 flex flex-wrap gap-2">{children}</div>
-    </div>
-  );
-}
-
-function FilterLink({
-  href,
+function FilterButton({
   active,
+  onClick,
   children,
 }: {
-  href: string;
   active: boolean;
-  children: React.ReactNode;
+  onClick: () => void;
+  children: ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={`inline-flex min-h-9 items-center rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-9 shrink-0 items-center justify-center rounded-full border px-3 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 motion-reduce:transition-none",
         active
-          ? "bg-emerald-900 text-white"
-          : "border border-emerald-950/10 bg-white/80 text-emerald-950 hover:bg-white"
-      }`}
+          ? "border-emerald-900 bg-emerald-900 text-white"
+          : "border-emerald-950/10 bg-white/80 text-emerald-950 hover:bg-white",
+      )}
     >
-      {children}
-    </Link>
+      <span className="font-semibold">{children}</span>
+    </button>
   );
 }

@@ -1,3 +1,6 @@
+import { GUIDE_ACTIONS } from "@/lib/guide-actions";
+import type { GuideAction, GuideActionId } from "@/lib/guide-actions";
+
 /**
  * Base de conhecimento do assistente SIMULADO do ShadowMap.
  *
@@ -8,6 +11,10 @@
 
 export interface ChatbotTopic {
   id: string;
+  label: string;
+  summary: string;
+  related: string[];
+  actionIds?: GuideActionId[];
   /** Pergunta sugerida exibida como atalho no chat. */
   question: string;
   /** Palavras/frases usadas para encontrar o assunto. Sem acentos. */
@@ -19,6 +26,11 @@ export interface ChatbotTopic {
 export const CHATBOT_TOPICS: ChatbotTopic[] = [
   {
     id: "sobre",
+    label: "Sobre o projeto",
+    summary:
+      "O ShadowMap é um projeto da UCSAL sobre calor urbano e arborização em Salvador.",
+    related: ["dados-simulados", "equipe", "mapa"],
+    actionIds: ["project"],
     question: "O que é o ShadowMap?",
     keywords: [
       "shadowmap",
@@ -38,6 +50,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "dados-simulados",
+    label: "Sobre os dados",
+    summary:
+      "Os pontos e as zonas são exemplos de demonstração. Eles não representam medições nem relatos reais.",
+    related: ["selo", "uso-dados", "cidades"],
+    actionIds: ["show-map"],
     question: "Os dados são reais?",
     keywords: [
       "dados reais",
@@ -61,6 +78,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "mapa",
+    label: "Usar o mapa",
+    summary:
+      "Arraste para navegar e use +/− para dar zoom. Toque em um marcador para abrir seus detalhes.",
+    related: ["legenda", "filtros", "cadastro"],
+    actionIds: ["show-map"],
     question: "Como usar o mapa?",
     keywords: [
       "como usar o mapa",
@@ -81,6 +103,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "filtros",
+    label: "Usar filtros",
+    summary:
+      "Use cidade, ocorrência e criticidade para filtrar pontos. As zonas de calor acompanham a cidade escolhida.",
+    related: ["cidades", "prioridade", "mapa"],
+    actionIds: ["show-map"],
     question: "Como funcionam os filtros?",
     keywords: [
       "filtro",
@@ -98,13 +125,21 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "cadastro",
+    label: "Criar um ponto",
+    summary:
+      "Abra “Novo ponto”, preencha os campos e escolha o local no mapa. O cadastro aparece apenas nesta sessão.",
+    related: ["privacidade", "prioridade", "mapa"],
+    actionIds: ["new-point"],
     question: "Como simular um cadastro?",
     keywords: [
       "cadastrar",
       "cadastro",
       "novo ponto",
       "criar ponto",
+      "criar um ponto",
       "adicionar ponto",
+      "adicionar um ponto",
+      "cadastrar um ponto",
       "registrar",
       "formulario",
       "simular cadastro",
@@ -112,10 +147,15 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
       "salvar ponto",
     ],
     answer:
-      "Para simular um cadastro:\n\n1. Toque em “Simular novo ponto” ou clique em um local do mapa.\n2. Preencha bairro, cidade, tipo de ocorrência, níveis de calor e sombra.\n3. Envie o formulário.\n\nO ponto aparece apenas no estado local da página, durante a sessão atual do navegador. Nada é enviado para um servidor, gravado em banco ou compartilhado.",
+      "Para simular um cadastro:\n\n1. Toque em “Novo ponto” para abrir o formulário no painel lateral.\n2. Preencha bairro, cidade, tipo de ocorrência, níveis de calor e sombra. A prioridade é calculada automaticamente.\n3. Envie o formulário.\n\nO ponto fica disponível no mapa e no painel durante a navegação. Os pontos adicionados e rascunhos são descartados ao recarregar a página. Nada é enviado para um servidor, gravado em banco ou compartilhado.",
   },
   {
     id: "prioridade",
+    label: "Calcular prioridade",
+    summary:
+      "Calor extremo ou alto sem sombra gera prioridade crítica. As outras faixas seguem o nível de calor.",
+    related: ["legenda", "arborizacao", "dados-simulados"],
+    actionIds: ["show-legend"],
     question: "Como a prioridade é calculada?",
     keywords: [
       "prioridade",
@@ -135,6 +175,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "ilhas-de-calor",
+    label: "Ilhas de calor",
+    summary:
+      "Asfalto, concreto e pouca vegetação podem deixar áreas urbanas mais quentes que o entorno.",
+    related: ["arborizacao", "legenda", "dados-simulados"],
+    actionIds: ["show-legend"],
     question: "O que são ilhas de calor?",
     keywords: [
       "ilha de calor",
@@ -151,6 +196,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "arborizacao",
+    label: "Arborização",
+    summary:
+      "Árvores oferecem sombra e ajudam a reduzir o calor nas ruas. Os níveis de sombra deste mapa são ilustrativos.",
+    related: ["especies", "prioridade", "ilhas-de-calor"],
+    actionIds: [],
     question: "Qual a importância da arborização?",
     keywords: [
       "arvore",
@@ -167,6 +217,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "especies",
+    label: "Espécies nativas",
+    summary:
+      "A demonstração tem conteúdo educativo sobre árvores nativas. Para escolher uma espécie, procure orientação local.",
+    related: ["arborizacao", "equipe", "sobre"],
+    actionIds: ["project"],
     question: "O ShadowMap recomenda espécies nativas?",
     keywords: [
       "especie",
@@ -185,6 +240,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "painel",
+    label: "Ver estatísticas",
+    summary:
+      "Veja totais, rankings de bairros e distribuições dos pontos. Os gráficos usam os dados simulados da amostra.",
+    related: ["filtros", "prioridade", "dados-simulados"],
+    actionIds: ["dashboard"],
     question: "O que tem no painel?",
     keywords: [
       "painel",
@@ -203,6 +263,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "cidades",
+    label: "Cidades atendidas",
+    summary:
+      "A amostra inclui pontos de Salvador. As outras cidades podem ser escolhidas no filtro ou em um cadastro local.",
+    related: ["filtros", "cadastro", "dados-simulados"],
+    actionIds: ["show-map"],
     question: "Quais cidades aparecem?",
     keywords: [
       "quais cidades",
@@ -216,10 +281,15 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
       "localizacao",
     ],
     answer:
-      "A amostra do mapa é focada em Salvador.\n\nO conjunto de dados também inclui exemplos de Camaçari, Lauro de Freitas e Simões Filho, que aparecem nas opções de filtro e no painel. Tudo é ilustrativo e não representa um levantamento de campo.",
+      "Os dados iniciais da amostra são de Salvador. Camaçari, Lauro de Freitas e Simões Filho estão disponíveis nos filtros e no cadastro, mas começam sem pontos. Você pode adicionar exemplos locais durante esta sessão.",
   },
   {
     id: "privacidade",
+    label: "Privacidade",
+    summary:
+      "O cadastro não pede dados pessoais nem usa o GPS. Os pontos adicionados ficam apenas na sessão atual.",
+    related: ["cadastro", "login", "dados-simulados"],
+    actionIds: ["project"],
     question: "O que é coletado sobre mim?",
     keywords: [
       "privacidade",
@@ -239,6 +309,10 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "login",
+    label: "Acesso ao mapa",
+    summary: "Você pode explorar o mapa e simular pontos sem criar conta.",
+    related: ["cadastro", "privacidade", "gratuito"],
+    actionIds: ["show-map"],
     question: "Preciso criar uma conta?",
     keywords: [
       "login",
@@ -257,6 +331,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "openstreetmap",
+    label: "Mapa base",
+    summary:
+      "O mapa base usa OpenStreetMap. Se os blocos não carregarem, confira a conexão e tente recarregar a página.",
+    related: ["mapa", "dados-simulados", "filtros"],
+    actionIds: ["show-map"],
     question: "Por que o mapa usa OpenStreetMap?",
     keywords: [
       "openstreetmap",
@@ -273,6 +352,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "assistente",
+    label: "Sobre a ajuda",
+    summary:
+      "Sou um guia com respostas prontas sobre o ShadowMap. Posso explicar tarefas e abrir recursos da interface.",
+    related: ["mapa", "cadastro", "ajuda"],
+    actionIds: [],
     question: "Você é uma IA de verdade?",
     keywords: [
       "voce e real",
@@ -289,10 +373,15 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
       "gemini",
     ],
     answer:
-      "Sou um assistente fictício criado para esta demonstração.\n\nNão sou uma IA generativa e não consulto nenhum serviço externo. Minhas respostas são pré-escritas e escolhidas por palavras-chave. Também não aprendo com a conversa nem guardo histórico: ao recarregar a página, a conversa recomeça.",
+      "Esta ajuda usa respostas prontas, escolhidas por assunto. Não consulta uma IA generativa nem serviços externos. A conversa fica apenas nesta página e recomeça ao recarregar.",
   },
   {
     id: "gratuito",
+    label: "Uso gratuito",
+    summary:
+      "A demonstração é gratuita e faz parte de um projeto acadêmico da UCSAL.",
+    related: ["sobre", "login", "equipe"],
+    actionIds: [],
     question: "O ShadowMap é gratuito?",
     keywords: [
       "gratuito",
@@ -308,6 +397,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "equipe",
+    label: "Equipe do projeto",
+    summary:
+      "O projeto é desenvolvido na extensão da UCSAL. A página do projeto reúne informações sobre a demonstração.",
+    related: ["sobre", "uso-dados", "especies"],
+    actionIds: ["project"],
     question: "Quem faz o projeto?",
     keywords: [
       "quem fez",
@@ -326,6 +420,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "uso-dados",
+    label: "Uso dos dados",
+    summary:
+      "Você pode apresentar a interface como exemplo. Os dados simulados não servem como evidência ambiental.",
+    related: ["dados-simulados", "equipe", "sobre"],
+    actionIds: ["project"],
     question: "Posso usar os dados em um trabalho?",
     keywords: [
       "posso usar",
@@ -343,6 +442,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "selo",
+    label: "Selo Simulado",
+    summary:
+      "O selo “Simulado” identifica exemplos criados para a demonstração.",
+    related: ["dados-simulados", "legenda", "uso-dados"],
+    actionIds: ["show-legend"],
     question: "O que significa o selo “Simulado”?",
     keywords: [
       "selo",
@@ -356,6 +460,11 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
   },
   {
     id: "ajuda",
+    label: "Outros assuntos",
+    summary:
+      "Escolha um assunto para continuar. Posso explicar o mapa, as cores, o cadastro e os dados.",
+    related: ["mapa", "legenda", "cadastro", "dados-simulados"],
+    actionIds: [],
     question: "O que posso perguntar?",
     keywords: [
       "ajuda",
@@ -368,10 +477,14 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
       "como funciona o chat",
     ],
     answer:
-      "Você pode perguntar sobre:\n\n• o que é o ShadowMap e se os dados são reais;\n• como usar o mapa, os filtros e o cadastro simulado;\n• como a prioridade dos pontos é calculada;\n• ilhas de calor, arborização e espécies nativas;\n• painel, cidades atendidas, privacidade e login;\n• o próprio assistente e a equipe do projeto.\n\nToque em uma das sugestões abaixo ou escreva sua pergunta.",
+      "Escolha um assunto para continuar. Posso explicar o mapa, as cores, o cadastro e os dados.",
   },
   {
     id: "saudacao",
+    label: "Começar",
+    summary: "Olá! O que você quer fazer no mapa?",
+    related: ["mapa", "cadastro", "dados-simulados"],
+    actionIds: [],
     question: "Oi!",
     keywords: [
       "oi",
@@ -385,11 +498,14 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
       "hey",
       "hello",
     ],
-    answer:
-      "Olá! Eu sou o assistente simulado do ShadowMap.\n\nPosso explicar o projeto, os dados simulados, o mapa, os filtros e a prioridade dos pontos. O que você quer saber?",
+    answer: "Olá! O que você quer fazer no mapa?",
   },
   {
     id: "agradecimento",
+    label: "Continuar",
+    summary: "Por nada! Quer explorar outro assunto?",
+    related: ["mapa", "legenda", "cadastro"],
+    actionIds: [],
     question: "Obrigado!",
     keywords: [
       "obrigado",
@@ -403,22 +519,54 @@ export const CHATBOT_TOPICS: ChatbotTopic[] = [
       "ate mais",
       "adeus",
     ],
+    answer: "Por nada! Quer explorar outro assunto?",
+  },
+  {
+    id: "legenda",
+    label: "Entender as cores",
+    summary:
+      "Amarelo indica calor baixo; vermelho escuro, extremo. Nos pontos, a cor do contorno mostra a prioridade.",
+    related: ["prioridade", "dados-simulados", "ilhas-de-calor"],
+    actionIds: ["show-legend"],
+    question: "O que significam as cores do mapa?",
+    keywords: [
+      "legenda",
+      "cores",
+      "cor",
+      "cores do mapa",
+      "entender as cores",
+      "entender a legenda",
+      "mostrar legenda",
+    ],
     answer:
-      "De nada! Lembre-se: esta é uma demonstração com dados simulados e respostas pré-escritas.\n\nSe quiser, posso explicar outro tópico do ShadowMap.",
+      "Nas zonas ilustrativas, amarelo indica calor baixo, laranja indica médio, vermelho indica alto e vermelho escuro indica extremo.\n\nOs pontos simulados têm preenchimento cinza e contorno tracejado. A cor do contorno indica prioridade: verde para baixa, amarelo para média, laranja para alta e vermelho para crítica. A prioridade é calculada a partir de calor e sombra.",
   },
 ];
 
-export const SUGGESTED_QUESTIONS = [
-  "O que é o ShadowMap?",
-  "Os dados são reais?",
-  "Como simular um cadastro?",
-  "Como a prioridade é calculada?",
+export interface ChatbotSuggestion {
+  topicId: string;
+  label: string;
+  question: string;
+}
+
+export interface ChatbotReply {
+  text: string;
+  topicId: string | null;
+  details?: string;
+  suggestions: ChatbotSuggestion[];
+  actions: GuideAction[];
+}
+
+export const STARTER_TASKS = [
+  { topicId: "mapa", label: "Como usar o mapa?" },
+  { topicId: "legenda", label: "O que significam as cores?" },
+  { topicId: "cadastro", label: "Como criar um ponto?" },
+  { topicId: "dados-simulados", label: "Os dados são reais?" },
 ];
 
 export const WELCOME_MESSAGE =
-  "Olá! Eu sou o assistente simulado do ShadowMap.\n\nPosso responder perguntas sobre o projeto, os dados simulados, o mapa e o painel. Minhas respostas são pré-escritas — nenhuma IA real é consultada.";
+  "Olá! Sou o assistente do ShadowMap. Posso conversar com você sobre o mapa, os pontos e os dados do projeto. O que você gostaria de saber?";
 
-/** Remove acentos, pontuação e diferenças de caixa para facilitar a busca. */
 export function normalizeChatText(text: string): string {
   return text
     .normalize("NFD")
@@ -429,63 +577,133 @@ export function normalizeChatText(text: string): string {
     .trim();
 }
 
-function scoreKeyword(normalizedMessage: string, keyword: string): number {
-  const normalizedKeyword = normalizeChatText(keyword);
-  if (!normalizedKeyword) return 0;
-
-  // Exige correspondência por palavra/frase inteira para evitar falsos positivos.
-  const pattern = new RegExp(`(^|\\s)${escapeRegExp(normalizedKeyword)}(\\s|$)`);
-  if (!pattern.test(normalizedMessage)) return 0;
-
-  const wordCount = normalizedKeyword.split(" ").length;
-  return 12 + wordCount * 8 + Math.min(normalizedKeyword.length, 24);
+function suggestionsFor(ids: string[]): ChatbotSuggestion[] {
+  return [...new Set(ids)].flatMap((id) => {
+    const topic = CHATBOT_TOPICS.find((candidate) => candidate.id === id);
+    return topic
+      ? [{ topicId: topic.id, label: topic.label, question: topic.question }]
+      : [];
+  });
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+export function getTopicReply(topicId: string): ChatbotReply {
+  const topic = CHATBOT_TOPICS.find((candidate) => candidate.id === topicId);
+  if (!topic) return fallbackReply([]);
 
-export interface ChatbotReply {
-  text: string;
-  topicId: string | null;
-}
-
-/**
- * Retorna uma resposta pré-pronta para a mensagem. Quando nada corresponde,
- * devolve um texto de fallback com os assuntos disponíveis.
- */
-export function getChatbotReply(message: string): ChatbotReply {
-  const normalizedMessage = normalizeChatText(message);
-
-  if (!normalizedMessage) {
-    return {
-      text: "Escreva uma pergunta sobre o ShadowMap para eu tentar ajudar.",
-      topicId: null,
-    };
-  }
-
-  let bestTopic: ChatbotTopic | null = null;
-  let bestScore = 0;
-
-  for (const topic of CHATBOT_TOPICS) {
-    const score = topic.keywords.reduce(
-      (total, keyword) => total + scoreKeyword(normalizedMessage, keyword),
-      0,
-    );
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestTopic = topic;
-    }
-  }
-
-  if (bestTopic) {
-    return { text: bestTopic.answer, topicId: bestTopic.id };
-  }
+  const related =
+    topic.id === "ajuda"
+      ? topic.related
+      : [...topic.related.filter((id) => id !== "ajuda").slice(0, 2), "ajuda"];
 
   return {
-    text:
-      "Não encontrei uma resposta pré-pronta para essa pergunta.\n\nPosso falar sobre: o que é o ShadowMap, dados simulados, mapa, filtros, cadastro simulado, prioridade dos pontos, ilhas de calor, arborização, espécies nativas, painel, privacidade, login e a equipe do projeto.\n\nTente reformular a pergunta ou toque em uma das sugestões abaixo.",
-    topicId: null,
+    text: topic.summary,
+    topicId: topic.id,
+    details: topic.answer === topic.summary ? undefined : topic.answer,
+    suggestions: suggestionsFor(related),
+    actions: (topic.actionIds ?? []).map((id) => GUIDE_ACTIONS[id]),
   };
+}
+
+function fallbackReply(related: string[]): ChatbotReply {
+  return {
+    text: "Ainda não reconheci essa pergunta. Você quis falar de algum destes assuntos?",
+    topicId: null,
+    suggestions: suggestionsFor(
+      related.length ? related : ["mapa", "legenda", "cadastro"],
+    ),
+    actions: [],
+  };
+}
+
+function keywordScore(message: string, keyword: string): number {
+  const normalized = normalizeChatText(keyword);
+  const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (!normalized || !new RegExp(`(^|\\s)${escaped}(\\s|$)`).test(message))
+    return 0;
+  return (
+    12 + normalized.split(" ").length * 8 + Math.min(normalized.length, 24)
+  );
+}
+
+function similarWord(left: string, right: string): boolean {
+  if (left.length < 4 || right.length < 4) return false;
+  const limit = Math.min(left.length, right.length) >= 7 ? 2 : 1;
+  if (Math.abs(left.length - right.length) > limit) return false;
+
+  const row = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= left.length; i++) {
+    let previous = row[0];
+    row[0] = i;
+    for (let j = 1; j <= right.length; j++) {
+      const old = row[j];
+      row[j] = Math.min(
+        row[j] + 1,
+        row[j - 1] + 1,
+        previous + Number(left[i - 1] !== right[j - 1]),
+      );
+      previous = old;
+    }
+  }
+  return row[right.length] <= limit;
+}
+
+export function getChatbotReply(message: string): ChatbotReply {
+  const normalized = normalizeChatText(message);
+  const exact = CHATBOT_TOPICS.find(
+    (topic) => normalizeChatText(topic.question) === normalized,
+  );
+  if (exact) return getTopicReply(exact.id);
+
+  const ranked = CHATBOT_TOPICS.map((topic) => ({
+    topic,
+    score: Math.max(
+      0,
+      ...topic.keywords.map((keyword) => keywordScore(normalized, keyword)),
+    ),
+  })).sort((first, second) => second.score - first.score);
+
+  if (ranked[0]?.score > 0) return getTopicReply(ranked[0].topic.id);
+
+  const ignored = new Set([
+    "como",
+    "para",
+    "sobre",
+    "quero",
+    "posso",
+    "pode",
+    "saber",
+    "ajuda",
+    "voce",
+    "isso",
+    "esse",
+    "essa",
+    "qual",
+    "esta",
+    "mais",
+    "tenho",
+    "preciso",
+  ]);
+  const words = normalized
+    .split(" ")
+    .filter((word) => word.length >= 4 && !ignored.has(word));
+  const closest = CHATBOT_TOPICS.filter(
+    (topic) => !["saudacao", "agradecimento", "ajuda"].includes(topic.id),
+  )
+    .map((topic) => {
+      const keywords = [
+        ...new Set(normalizeChatText(topic.keywords.join(" ")).split(" ")),
+      ];
+      return {
+        id: topic.id,
+        score: words.filter((word) =>
+          keywords.some((keyword) => similarWord(word, keyword)),
+        ).length,
+      };
+    })
+    .filter((topic) => topic.score > 0)
+    .sort((first, second) => second.score - first.score)
+    .slice(0, 3)
+    .map((topic) => topic.id);
+
+  return fallbackReply(closest);
 }

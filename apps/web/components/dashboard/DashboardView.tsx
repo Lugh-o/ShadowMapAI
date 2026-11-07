@@ -2,139 +2,135 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { ArrowLeft, FlaskConical } from "lucide-react";
 
+import { useDemoSession } from "@/components/DemoSessionProvider";
 import DailyChart from "@/components/dashboard/DailyChart";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
-import DistributionBars from "@/components/dashboard/DistributionBars";
+import DashboardDistributions from "@/components/dashboard/DashboardDistributions";
 import RankingTable from "@/components/dashboard/RankingTable";
-import {
-  getDashboardData,
-  parseDashboardParams,
-  type DashboardData,
-  type RecentPoint,
-} from "@/lib/dashboard";
-import { getIssueTypeLabel, getPriorityLabel } from "@/lib/utils";
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("pt-BR");
-}
+import RecentPoints from "@/components/dashboard/RecentPoints";
+import { getDashboardData, parseDashboardParams } from "@/lib/dashboard";
 
 export default function DashboardView() {
   const searchParams = useSearchParams();
+  const { session, setSession } = useDemoSession();
   const filters = parseDashboardParams({
-    origin: searchParams.get("origin"),
-    city: searchParams.get("city"),
-    days: searchParams.get("days"),
+    city: searchParams.get("city") ?? session.dashboardFilters.city,
+    days: searchParams.get("days") ?? String(session.dashboardFilters.days),
   });
 
-  const [data, setData] = useState<DashboardData | null>(null);
+  const data = useMemo(
+    () =>
+      getDashboardData(
+        { city: filters.city, days: filters.days },
+        session.points,
+      ),
+    [filters.city, filters.days, session.points],
+  );
 
   useEffect(() => {
-    let cancelled = false;
+    setSession((current) =>
+      current.dashboardFilters.city === filters.city &&
+      current.dashboardFilters.days === filters.days
+        ? current
+        : {
+            ...current,
+            dashboardFilters: { city: filters.city, days: filters.days },
+          },
+    );
+  }, [filters.city, filters.days, setSession]);
 
-    setData(null);
-    getDashboardData(filters).then((result) => {
-      if (!cancelled) setData(result);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.origin, filters.city, filters.days]);
-
-  const hasNoCollected =
-    filters.origin === "collected" && data?.collectedCount === 0;
-  const hasNoFilteredData = data?.totals.approved === 0;
+  const hasNoFilteredData = data.totals.approved === 0;
+  const highCriticalPercent = data.totals.approved
+    ? Math.round((data.totals.highCritical / data.totals.approved) * 100)
+    : 0;
+  const filterKey = `${filters.city}:${filters.days}`;
 
   return (
-    <main className="min-h-screen">
-      <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-4 py-4 md:px-6 md:py-6">
-        <header className="glass-panel rounded-[30px] p-5 md:p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-3xl">
-              <span className="inline-flex items-center rounded-full bg-emerald-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-50">
+    <main id="conteudo-principal" tabIndex={-1} className="min-h-screen">
+      <div className="mx-auto flex max-w-[1400px] min-w-0 flex-col gap-3 px-4 py-4 md:gap-4 md:px-6 md:py-5">
+        <header className="glass-panel rounded-3xl p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-950/55">
                 Painel demonstrativo
-              </span>
-              <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight text-emerald-950 md:text-4xl">
-                Calor urbano em números simulados
+              </p>
+              <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-emerald-950 md:text-3xl">
+                Calor urbano em números
               </h1>
-              <p className="mt-2 text-sm leading-6 text-emerald-950/72 md:text-base">
-                Agregados dos pontos simulados usados na amostra visual do
-                ShadowMap AI em Salvador. Nenhum dado foi coletado de moradores.
+              <p className="mt-1 text-sm leading-5 text-emerald-950/70">
+                Explore os indicadores por cidade e período.
               </p>
             </div>
 
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-emerald-100 px-4 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-200"
+              aria-label="Voltar ao mapa"
+              className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-100 px-3 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-200"
             >
-              Voltar ao mapa
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="sm:hidden">Mapa</span>
+              <span className="hidden sm:inline">Voltar ao mapa</span>
             </Link>
           </div>
 
-          <p className="mt-4 rounded-[20px] border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
-            <strong>Todos os números desta página são simulados.</strong> Eles
-            servem apenas para demonstrar a interface e não representam medições
-            de temperatura nem relatos reais.
-          </p>
+          <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs leading-5 text-amber-950">
+            <FlaskConical
+              className="mt-0.5 h-3.5 w-3.5 shrink-0"
+              aria-hidden="true"
+            />
+            <p>
+              <strong>Dados simulados.</strong> Valores ilustrativos, sem
+              medições de temperatura ou relatos reais.
+            </p>
+          </div>
         </header>
 
-        <DashboardFilters filters={filters} />
+        <DashboardFilters
+          filters={filters}
+          filteredPoints={data.totals.approved}
+          totalPoints={session.points.length}
+        />
 
-        {!data ? (
-          <section className="glass-panel rounded-[28px] p-5 md:p-6">
-            <p className="text-sm text-emerald-950/70">Carregando painel…</p>
-          </section>
-        ) : hasNoCollected ? (
-          <EmptyState
-            title="Nenhum ponto simulado com este filtro."
-            description="Ajuste a origem, a cidade ou o período para ver os dados de demonstração."
-          />
-        ) : hasNoFilteredData ? (
+        {hasNoFilteredData ? (
           <EmptyState
             title="Nenhum ponto simulado com os filtros atuais."
-            description="Ajuste a origem, a cidade ou o período para ver outros resultados."
+            description="Ajuste a cidade ou o período para ver outros resultados."
           />
         ) : (
           <>
-            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <MetricCard label="Pontos simulados" value={data.totals.approved} />
+            <section
+              aria-label="Indicadores do painel"
+              className="grid min-w-0 grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4"
+            >
+              <MetricCard
+                label="Pontos simulados"
+                value={data.totals.approved}
+              />
               <MetricCard
                 label="Críticos + altos"
                 value={data.totals.highCritical}
               />
+              <MetricCard label="Bairros" value={data.totals.neighborhoods} />
               <MetricCard
-                label="Bairros representados"
-                value={data.totals.neighborhoods}
-              />
-              <MetricCard
-                label="Pontos com selo simulado"
-                value={data.totals.approved}
+                label="Altos/críticos (%)"
+                value={`${highCriticalPercent}%`}
               />
             </section>
 
-            <RankingTable ranking={data.ranking} />
+            <DashboardDistributions distributions={data.distributions} />
 
-            <section className="grid gap-4 lg:grid-cols-3">
-              <DistributionBars
-                title="Por tipo de ocorrência"
-                items={data.distributions.issueType}
-              />
-              <DistributionBars
-                title="Por nível de calor"
-                items={data.distributions.heatLevel}
-              />
-              <DistributionBars
-                title="Por nível de sombra"
-                items={data.distributions.shadeLevel}
-              />
-            </section>
+            <DailyChart
+              key={`daily:${filterKey}`}
+              data={data.daily}
+              period={filters.days}
+            />
 
-            <DailyChart data={data.daily} />
+            <RankingTable key={`ranking:${filterKey}`} ranking={data.ranking} />
 
-            <RecentReports points={data.recent} />
+            <RecentPoints key={`recent:${filterKey}`} points={data.recent} />
           </>
         )}
       </div>
@@ -145,21 +141,18 @@ export default function DashboardView() {
 function MetricCard({
   label,
   value,
-  hint,
 }: {
   label: string;
   value: string | number;
-  hint?: string;
 }) {
   return (
-    <div className="card-strong rounded-[24px] bg-emerald-50/80 px-4 py-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-950/55">
+    <div className="card-strong min-w-0 rounded-2xl bg-emerald-50/80 p-3">
+      <p className="text-[10px] font-medium leading-4 text-emerald-950/60 sm:text-[11px]">
         {label}
       </p>
-      <p className="mt-1 font-display text-2xl font-semibold text-emerald-950">
+      <p className="mt-1 font-display text-xl font-semibold text-emerald-950 sm:text-2xl">
         {value}
       </p>
-      {hint ? <p className="mt-1 text-xs text-emerald-950/55">{hint}</p> : null}
     </div>
   );
 }
@@ -185,59 +178,6 @@ function EmptyState({
       >
         Ir para o mapa
       </Link>
-    </section>
-  );
-}
-
-function RecentReports({ points }: { points: RecentPoint[] }) {
-  return (
-    <section className="card-strong rounded-[24px] p-4 md:p-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h3 className="font-display text-lg font-semibold text-emerald-950">
-          Últimos 10 pontos simulados
-        </h3>
-        <p className="text-xs text-emerald-950/55">
-          Simulados, mais recentes primeiro
-        </p>
-      </div>
-
-      {points.length === 0 ? (
-        <p className="mt-3 text-sm text-emerald-950/60">
-          Nenhum ponto simulado no período selecionado.
-        </p>
-      ) : (
-        <ul className="mt-3 divide-y divide-emerald-950/10">
-          {points.map((point) => (
-            <li
-              key={point.id}
-              className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="font-semibold text-emerald-950">
-                  {point.neighborhood}
-                </p>
-                <p className="text-xs text-emerald-950/55">{point.city}</p>
-              </div>
-
-              <div className="text-sm text-emerald-950/75">
-                <p>{getIssueTypeLabel(point.issueType)}</p>
-                <p className="text-xs text-emerald-950/55">
-                  Prioridade: {getPriorityLabel(point.priority)}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs text-emerald-950/60">
-                <span>{formatDate(point.createdAt)}</span>
-                {point.dataOrigin === "simulated" ? (
-                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-700">
-                    Simulado
-                  </span>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
     </section>
   );
 }

@@ -25,7 +25,7 @@ export default function HeatZoneLayer({ zones }: HeatZoneLayerProps) {
             weight: 2,
           }}
         >
-          <Tooltip sticky>
+          <Tooltip sticky className="heat-zone-tooltip">
             <div className="space-y-1">
               <p className="font-semibold">{zone.name}</p>
               <p className="text-xs opacity-80">{zone.city}</p>
