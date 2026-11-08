@@ -1,5 +1,8 @@
 "use client";
 
+import { useId, useState } from "react";
+import { parsePointForm, POINT_TEXT_LIMITS } from "@/lib/point-validation";
+import type { PointFormDraft } from "@/lib/point-validation";
 import {
   CITY_OPTIONS,
   derivePriority,
@@ -21,8 +24,8 @@ import type {
 
 interface PointFormProps {
   draftLocation: { lat: number; lng: number } | null;
-  values: PointFormValues;
-  onValuesChange: (values: PointFormValues) => void;
+  values: PointFormDraft;
+  onValuesChange: (values: PointFormDraft) => void;
   aiAssisted?: boolean;
   onCancel: () => void;
   onSubmit: (values: PointFormValues, aiAssisted: boolean) => void;
@@ -43,17 +46,28 @@ export default function PointForm({
   onSubmit,
 }: PointFormProps) {
   const priority = derivePriority(values.heatLevel, values.shadeLevel);
+  const [showErrors, setShowErrors] = useState(false);
+  const errorId = useId();
+  const errors = showErrors ? parsePointForm(values).errors : {};
+
+  function fieldError(field: "neighborhood" | "description" | "lat" | "lng") {
+    return errors[field] ? (
+      <span id={`${errorId}-${field}`} className="mt-1 block text-xs text-rose-800">
+        {errors[field]}
+      </span>
+    ) : null;
+  }
 
   function updateField(field: "city", value: City): void;
   function updateField(field: "heatLevel", value: HeatLevel): void;
   function updateField(field: "shadeLevel", value: ShadeLevel): void;
   function updateField(field: "issueType", value: IssueType): void;
-  function updateField(field: "lat" | "lng", value: number): void;
+  function updateField(field: "lat" | "lng", value: string): void;
   function updateField(
     field: "neighborhood" | "description",
     value: string,
   ): void;
-  function updateField(field: keyof PointFormValues, value: string | number) {
+  function updateField(field: keyof PointFormDraft, value: string | number) {
     const nextValues = {
       ...values,
       [field]: value,
@@ -66,11 +80,19 @@ export default function PointForm({
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit({ ...values, priority }, aiAssisted);
+    const result = parsePointForm(values);
+    setShowErrors(true);
+    if (!result.values) {
+      const field = Object.keys(result.errors)[0];
+      const input = event.currentTarget.elements.namedItem(field);
+      if (input instanceof HTMLElement) input.focus();
+      return;
+    }
+    onSubmit({ ...result.values, priority }, aiAssisted);
   }
 
   return (
-    <form className="space-y-2.5 text-sm" onSubmit={handleSubmit}>
+    <form noValidate className="space-y-2.5 text-sm" onSubmit={handleSubmit}>
       {aiAssisted ? (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs leading-4 text-amber-950">
           Sugestão da IA. Revise os campos antes de salvar. A prioridade é
@@ -107,10 +129,15 @@ export default function PointForm({
           </select>
         </label>
 
-        <label className="min-w-0 text-sm font-medium text-emerald-950">
-          Bairro
+        <div className="min-w-0 text-sm font-medium text-emerald-950">
+          <label className="block" htmlFor={`${errorId}-neighborhood-input`}>Bairro</label>
           <input
             required
+            id={`${errorId}-neighborhood-input`}
+            name="neighborhood"
+            maxLength={POINT_TEXT_LIMITS.neighborhood}
+            aria-invalid={Boolean(errors.neighborhood)}
+            aria-describedby={errors.neighborhood ? `${errorId}-neighborhood` : undefined}
             className={fieldClassName}
             placeholder="Ex.: Itapuã"
             value={values.neighborhood}
@@ -118,37 +145,48 @@ export default function PointForm({
               updateField("neighborhood", event.target.value)
             }
           />
-        </label>
+          {fieldError("neighborhood")}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <label className="min-w-0 text-sm font-medium text-emerald-950">
-          Latitude
+        <div className="min-w-0 text-sm font-medium text-emerald-950">
+          <label className="block" htmlFor={`${errorId}-lat-input`}>Latitude</label>
           <input
             required
-            type="number"
-            step="0.000001"
+            id={`${errorId}-lat-input`}
+            name="lat"
+            type="text"
+            inputMode="decimal"
+            aria-invalid={Boolean(errors.lat)}
+            aria-describedby={errors.lat ? `${errorId}-lat` : undefined}
             className={fieldClassName}
             value={values.lat}
             onChange={(event) =>
-              updateField("lat", Number(event.target.value || 0))
+              updateField("lat", event.target.value)
             }
           />
-        </label>
+          {fieldError("lat")}
+        </div>
 
-        <label className="min-w-0 text-sm font-medium text-emerald-950">
-          Longitude
+        <div className="min-w-0 text-sm font-medium text-emerald-950">
+          <label className="block" htmlFor={`${errorId}-lng-input`}>Longitude</label>
           <input
             required
-            type="number"
-            step="0.000001"
+            id={`${errorId}-lng-input`}
+            name="lng"
+            type="text"
+            inputMode="decimal"
+            aria-invalid={Boolean(errors.lng)}
+            aria-describedby={errors.lng ? `${errorId}-lng` : undefined}
             className={fieldClassName}
             value={values.lng}
             onChange={(event) =>
-              updateField("lng", Number(event.target.value || 0))
+              updateField("lng", event.target.value)
             }
           />
-        </label>
+          {fieldError("lng")}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -220,16 +258,22 @@ export default function PointForm({
         A prioridade é calculada automaticamente pelos níveis de calor e sombra.
       </p>
 
-      <label className="block text-sm font-medium text-emerald-950">
-        Descrição
+      <div className="text-sm font-medium text-emerald-950">
+        <label className="block" htmlFor={`${errorId}-description-input`}>Descrição</label>
         <textarea
           required
+          id={`${errorId}-description-input`}
+          name="description"
+          maxLength={POINT_TEXT_LIMITS.description}
+          aria-invalid={Boolean(errors.description)}
+          aria-describedby={errors.description ? `${errorId}-description` : undefined}
           className={textAreaClassName}
           placeholder="Descreva o problema observado e o contexto urbano do local."
           value={values.description}
           onChange={(event) => updateField("description", event.target.value)}
         />
-      </label>
+        {fieldError("description")}
+      </div>
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
         <button

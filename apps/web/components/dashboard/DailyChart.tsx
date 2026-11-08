@@ -4,20 +4,12 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
 import type { DailyRow, DashboardPeriod } from "@/lib/dashboard";
+import { formatDayKey as formatDay } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 interface DailyChartProps {
   data: DailyRow[];
   period: DashboardPeriod;
-}
-
-function formatDay(date: string, full = false): string {
-  return new Date(`${date}T00:00:00.000Z`).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    ...(full ? { year: "numeric" as const } : {}),
-    timeZone: "UTC",
-  });
 }
 
 export default function DailyChart({ data, period }: DailyChartProps) {

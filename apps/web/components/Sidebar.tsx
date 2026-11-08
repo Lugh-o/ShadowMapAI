@@ -12,19 +12,20 @@ import {
   getShadeLevelLabel,
 } from "@/lib/utils";
 import type { HeatZone, PointFeature, PointFormValues } from "@shadowmap/types";
+import type { PointFormDraft } from "@/lib/point-validation";
 
 interface SidebarProps {
   selectedPoint: PointFeature | null;
   criticalPoints: PointFeature[];
   draftLocation: { lat: number; lng: number } | null;
-  draftValues: PointFormValues | null;
+  draftValues: PointFormDraft | null;
   aiAssisted?: boolean;
   totalPoints: number;
   isFormOpen: boolean;
   onCloseForm: () => void;
   onSelectPoint: (pointId: string) => void;
   onSubmitPoint: (values: PointFormValues, aiAssisted: boolean) => void;
-  onDraftChange: (values: PointFormValues) => void;
+  onDraftChange: (values: PointFormDraft) => void;
   createdZones: HeatZone[];
   onSelectZone: (zoneId: string) => void;
 }
@@ -64,7 +65,7 @@ export default function Sidebar({
   }, [isFormOpen]);
 
   return (
-    <aside className="map-sidebar glass-panel flex min-w-0 flex-col gap-2 rounded-[22px] p-2.5">
+    <aside className="map-sidebar glass-panel flex min-w-0 flex-col gap-2 rounded-[22px] p-2.5 [overflow-wrap:anywhere]">
       <header className="hidden px-3 py-2 lg:block">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2
@@ -172,7 +173,7 @@ export default function Sidebar({
                   Detalhes do ponto
                 </p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <h3 className="font-display text-base font-semibold leading-5 text-emerald-950">
+                  <h3 className="min-w-0 font-display text-base font-semibold leading-5 text-emerald-950">
                     {selectedPoint
                       ? selectedPoint.neighborhood
                       : "Nenhum ponto ativo"}

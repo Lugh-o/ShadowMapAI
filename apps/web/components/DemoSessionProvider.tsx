@@ -6,8 +6,8 @@ import type {
   FiltersState,
   HeatZone,
   PointFeature,
-  PointFormValues,
 } from "@shadowmap/types";
+import type { PointFormDraft } from "@/lib/point-validation";
 import type { DashboardParams } from "@/lib/dashboard";
 import type { ZoneDraft } from "@/lib/zone-geometry";
 import {
@@ -30,7 +30,7 @@ interface DemoSession {
   dashboardFilters: DashboardParams;
   selectedPointId: string | null;
   draftLocation: MapLocation | null;
-  draftValues: PointFormValues | null;
+  draftValues: PointFormDraft | null;
   isFormOpen: boolean;
   showSimulated: boolean;
   isLegendExpanded: boolean | null;
@@ -43,7 +43,7 @@ interface DemoSessionContextValue {
 
 const DemoSessionContext = createContext<DemoSessionContextValue | null>(null);
 
-export function createPointDraft(location?: MapLocation): PointFormValues {
+export function createPointDraft(location?: MapLocation): PointFormDraft {
   return {
     city: location
       ? inferCityFromCoordinates(location.lat, location.lng)

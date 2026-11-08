@@ -15,6 +15,7 @@ import type {
   PointFeature,
   ShadeLevel,
 } from "@shadowmap/types";
+import { DAY_MS, shiftDayKey, toAppDayKey } from "./dates";
 
 export type DashboardPeriod = 7 | 30 | "all";
 
@@ -80,8 +81,6 @@ const PRIORITY_WEIGHTS: Record<Priority, number> = {
   low: 1,
 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 function normalizeText(value: string): string {
   return value
     .normalize("NFD")
@@ -89,10 +88,6 @@ function normalizeText(value: string): string {
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function toDayKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }
 
 export function parseDashboardParams(values: {
@@ -138,15 +133,13 @@ export function getDashboardData(
     )
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-  const today = new Date(now);
-  today.setUTCHours(0, 0, 0, 0);
+  const today = toAppDayKey(now);
   const dailyStart =
     days === "all"
-      ? new Date(points.at(-1)?.createdAt ?? today)
-      : new Date(today.getTime() - (days - 1) * DAY_MS);
-  dailyStart.setUTCHours(0, 0, 0, 0);
+      ? toAppDayKey(points.at(-1)?.createdAt ?? now)
+      : shiftDayKey(today, -(days - 1));
   const filteredPoints = points.filter(
-    (point) => point.createdAt >= dailyStart,
+    (point) => toAppDayKey(point.createdAt) >= dailyStart,
   );
 
   const groups = new Map<
@@ -217,15 +210,14 @@ export function getDashboardData(
 
   const dailyMap = new Map<string, number>();
   for (const point of filteredPoints) {
-    const key = toDayKey(point.createdAt);
+    const key = toAppDayKey(point.createdAt);
     dailyMap.set(key, (dailyMap.get(key) ?? 0) + 1);
   }
 
   const dayCount =
-    Math.round((today.getTime() - dailyStart.getTime()) / DAY_MS) + 1;
+    Math.round((Date.parse(today) - Date.parse(dailyStart)) / DAY_MS) + 1;
   const daily: DailyRow[] = Array.from({ length: dayCount }, (_, index) => {
-    const date = new Date(dailyStart.getTime() + index * DAY_MS);
-    const key = toDayKey(date);
+    const key = shiftDayKey(dailyStart, index);
 
     return { date: key, count: dailyMap.get(key) ?? 0 };
   });

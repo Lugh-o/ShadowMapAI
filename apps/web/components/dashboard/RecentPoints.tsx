@@ -4,15 +4,12 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useId, useState } from "react";
 
 import type { RecentPoint } from "@/lib/dashboard";
+import { formatAppDate } from "@/lib/dates";
 import {
   getIssueTypeLabel,
   getPointPriorityColor,
   getPriorityLabel,
 } from "@/lib/utils";
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("pt-BR", { timeZone: "UTC" });
-}
 
 export default function RecentPoints({ points }: { points: RecentPoint[] }) {
   const [expanded, setExpanded] = useState(false);
@@ -67,7 +64,7 @@ export default function RecentPoints({ points }: { points: RecentPoint[] }) {
                   dateTime={point.createdAt}
                   className="mt-1 block text-[10px] text-emerald-950/55"
                 >
-                  {formatDate(point.createdAt)}
+                  {formatAppDate(point.createdAt)}
                 </time>
               </div>
             </li>

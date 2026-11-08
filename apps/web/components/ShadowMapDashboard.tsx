@@ -30,6 +30,7 @@ import type {
   ZoneFocusRequest,
 } from "@/lib/map-view";
 import { useDesktopLayout } from "@/lib/use-desktop-layout";
+import { parsePointForm } from "@/lib/point-validation";
 import { getZoneGeometryError, MAX_ZONE_VERTICES } from "@/lib/zone-geometry";
 import type { ZoneCoordinate } from "@/lib/zone-geometry";
 
@@ -221,14 +222,20 @@ export default function ShadowMapDashboard({
     values: PointFormValues,
     submittedWithAi: boolean,
   ) {
+    const result = parsePointForm(values);
+    if (!result.values) {
+      setSubmitMessage({
+        tone: "error",
+        text: Object.values(result.errors).join(" "),
+      });
+      return;
+    }
     setSubmitMessage(null);
     setRemovedZone(null);
 
     const created: PointFeature = {
       id: `sim-${Date.now()}`,
-      ...values,
-      neighborhood: values.neighborhood.trim(),
-      description: values.description.trim(),
+      ...result.values,
       priority: derivePriority(values.heatLevel, values.shadeLevel),
       moderationStatus: "approved",
       dataOrigin: "simulated",
@@ -626,7 +633,9 @@ export default function ShadowMapDashboard({
           <div
             role="status"
             className={cn(
-              "flex items-start justify-between gap-3 rounded-3xl border px-4 py-3 text-sm",
+              "flex items-start justify-between gap-3 rounded-3xl border px-4 py-3 text-sm [overflow-wrap:anywhere]",
+              removedZone &&
+                "fixed inset-x-3 top-20 z-850 mx-auto max-w-lg shadow-lg",
               submitMessage.tone === "success"
                 ? "border-emerald-300 bg-emerald-50 text-emerald-900"
                 : "border-rose-300 bg-rose-50 text-rose-900",

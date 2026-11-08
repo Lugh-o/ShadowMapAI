@@ -16,9 +16,12 @@ import { getDashboardData, parseDashboardParams } from "@/lib/dashboard";
 export default function DashboardView() {
   const searchParams = useSearchParams();
   const { session, setSession } = useDemoSession();
+  const hasUrlFilters = searchParams.has("city") || searchParams.has("days");
   const filters = parseDashboardParams({
-    city: searchParams.get("city") ?? session.dashboardFilters.city,
-    days: searchParams.get("days") ?? String(session.dashboardFilters.days),
+    city: hasUrlFilters ? searchParams.get("city") : session.dashboardFilters.city,
+    days: hasUrlFilters
+      ? searchParams.get("days")
+      : String(session.dashboardFilters.days),
   });
 
   const data = useMemo(
@@ -31,6 +34,14 @@ export default function DashboardView() {
   );
 
   useEffect(() => {
+    // Snapshot even the initial entry before later changes can overwrite the
+    // session fallback. Back/Forward then always have their own filter values.
+    if (!searchParams.has("city") || !searchParams.has("days")) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("city", filters.city);
+      url.searchParams.set("days", String(filters.days));
+      window.history.replaceState(null, "", url);
+    }
     setSession((current) =>
       current.dashboardFilters.city === filters.city &&
       current.dashboardFilters.days === filters.days
@@ -40,7 +51,7 @@ export default function DashboardView() {
             dashboardFilters: { city: filters.city, days: filters.days },
           },
     );
-  }, [filters.city, filters.days, setSession]);
+  }, [filters.city, filters.days, searchParams, setSession]);
 
   const hasNoFilteredData = data.totals.approved === 0;
   const highCriticalPercent = data.totals.approved

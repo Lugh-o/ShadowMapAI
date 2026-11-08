@@ -38,6 +38,7 @@ export default function MapInfoPanel({
 
   useLayoutEffect(() => {
     let frame = 0;
+    const panel = panelRef.current;
     const viewport = window.visualViewport;
     function updatePosition() {
       const panel = panelRef.current;
@@ -55,20 +56,25 @@ export default function MapInfoPanel({
       const viewportTop = viewport?.offsetTop ?? 0;
       const navBottom =
         document.querySelector("nav")?.getBoundingClientRect().bottom ?? 0;
-      const upper = Math.max(rect.top + 8, navBottom + 8, viewportTop + 8);
-      const lower = Math.min(
-        rect.bottom - 10,
-        viewportTop + visibleHeight - 10,
-      );
+      const fullForm = expanded && isFormOpen &&
+        (visibleHeight < 500 || window.innerHeight - visibleHeight > 120);
+      const upper = fullForm
+        ? Math.max(navBottom + 8, viewportTop + 8)
+        : Math.max(rect.top + 8, navBottom + 8, viewportTop + 8);
+      const lower = fullForm
+        ? viewportTop + visibleHeight - 10
+        : Math.min(rect.bottom - 10, viewportTop + visibleHeight - 10);
       const available = Math.max(0, lower - upper);
       const visible = available >= 90;
-      const height = expanded
-        ? Math.max(50, Math.min(520, visibleHeight * 0.62, available - 56))
-        : 50;
-      panel.style.setProperty("--map-panel-left", `${rect.left + 8}px`);
+      const height = fullForm
+        ? available
+        : expanded
+          ? Math.max(50, Math.min(520, visibleHeight * 0.62, available - 56))
+          : 50;
+      panel.style.setProperty("--map-panel-left", `${fullForm ? 8 : rect.left + 8}px`);
       panel.style.setProperty(
         "--map-panel-right",
-        `${Math.max(8, root.clientWidth - rect.right + 8)}px`,
+        `${fullForm ? 8 : Math.max(8, root.clientWidth - rect.right + 8)}px`,
       );
       panel.style.setProperty(
         "--map-panel-bottom",
@@ -95,6 +101,20 @@ export default function MapInfoPanel({
         "--map-legend-max-height",
         `${Math.max(44, available - height - 24)}px`,
       );
+      // Keep the active field inside the scrollable body as the keyboard resizes
+      // or pans the visual viewport, without scrolling the document itself.
+      const active = document.activeElement;
+      const body = panel.querySelector<HTMLElement>(".panel-scroll-viewport");
+      if (
+        fullForm && body && active instanceof HTMLElement && body.contains(active)
+      ) {
+        const fieldRect = active.getBoundingClientRect();
+        const bodyRect = body.getBoundingClientRect();
+        if (fieldRect.bottom > bodyRect.bottom - 8)
+          body.scrollTop += fieldRect.bottom - bodyRect.bottom + 8;
+        else if (fieldRect.top < bodyRect.top + 8)
+          body.scrollTop += fieldRect.top - bodyRect.top - 8;
+      }
     }
     function scheduleUpdate() {
       cancelAnimationFrame(frame);
@@ -110,6 +130,7 @@ export default function MapInfoPanel({
     if (navigation) observer.observe(navigation);
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
     window.addEventListener("resize", scheduleUpdate);
+    panel?.addEventListener("focusin", scheduleUpdate);
     viewport?.addEventListener("resize", scheduleUpdate);
     viewport?.addEventListener("scroll", scheduleUpdate);
     return () => {
@@ -117,11 +138,12 @@ export default function MapInfoPanel({
       observer.disconnect();
       window.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("resize", scheduleUpdate);
+      panel?.removeEventListener("focusin", scheduleUpdate);
       viewport?.removeEventListener("resize", scheduleUpdate);
       viewport?.removeEventListener("scroll", scheduleUpdate);
       document.documentElement.style.removeProperty("--map-chat-offset");
     };
-  }, [expanded, mapRef, workspaceRef]);
+  }, [expanded, isFormOpen, mapRef, workspaceRef]);
 
   useEffect(() => {
     if (!expanded || window.matchMedia("(min-width: 64rem)").matches) return;
